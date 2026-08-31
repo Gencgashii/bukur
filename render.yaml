@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: bukur-medusa
+    runtime: node
+    plan: starter
+    rootDir: my-medusa-store
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: bukur-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: COOKIE_SECRET
+        generateValue: true
+      - key: STORE_CORS
+        sync: false
+      - key: ADMIN_CORS
+        sync: false
+      - key: AUTH_CORS
+        sync: false
+      - key: MEDUSA_DEFAULT_REGION_ID
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM
+        sync: false
+      - key: BANK_HOLDER
+        sync: false
+      - key: BANK_IBAN
+        sync: false
+      - key: BANK_NAME
+        sync: false
+
+databases:
+  - name: bukur-db
+    plan: starter
+    databaseName: medusa
+    user: medusa
