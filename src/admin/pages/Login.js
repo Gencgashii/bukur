@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { api, setCsrf } from '../api';
 import { Msg } from '../components/ui';
+import logo from '../../assets/bukur-logo.png';
 import '../admin.css';
 
 export default function Login({ onLoggedIn }) {
@@ -29,7 +30,10 @@ export default function Login({ onLoggedIn }) {
   return (
     <div className="ad-login">
       <form className="ad-login__card" onSubmit={submit}>
-        <div className="ad-brand ad-brand--lg">BUKUR<span>ADMIN</span></div>
+        <div className="ad-brand ad-brand--lg">
+          <img src={logo} alt="BUKUR" width="189" height="189" />
+          <span className="ad-brand__text">BUKUR <span>Admin</span></span>
+        </div>
         <p className="ad-login__sub">Sign in to manage the BUKUR store.</p>
         <label className="ad-field">
           <span className="ad-field__label">Email</span>
