@@ -14,6 +14,9 @@ import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import About from './pages/About';
+import FAQ from './pages/FAQ';
+import Contact from './pages/Contact';
+import LegalPage from './pages/LegalPage';
 import AdminApp from './admin/AdminApp';
 import './App.css';
 import './luxury.css';
@@ -36,6 +39,11 @@ function AppLayout() {
           <Route path="/products" element={<Products />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/about" element={<About />} />
+          <Route path="/faq" element={<FAQ />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/terms" element={<LegalPage doc="terms" />} />
+          <Route path="/privacy" element={<LegalPage doc="privacy" />} />
+          <Route path="/cookies" element={<LegalPage doc="cookies" />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="*" element={<Home />} />

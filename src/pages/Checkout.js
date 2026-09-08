@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useOrders } from '../context/OrdersContext';
 import usePageMeta from '../hooks/usePageMeta';
 import Img from '../components/Img';
+import logo from '../assets/bukur-logo.png';
 import {
   API_URL,
   BANK_DETAILS,
@@ -54,8 +55,8 @@ const Checkout = () => {
       <div className="co">
         <div className="co__topbar container">
           <button className="co__back" onClick={() => navigate('/cart')}>‹ Bag</button>
-          <span className="co__mark">BUKUR</span>
-          <span />
+          <span className="co__mark"><img src={logo} alt="BUKUR" width="189" height="189" /></span>
+          <span className="co__topbar-end" />
         </div>
         <div className="state">
           <p className="u-eyebrow">Checkout</p>
@@ -157,12 +158,12 @@ const Checkout = () => {
       <div className="co">
         <div className="co__topbar container">
           <button className="co__back" onClick={() => navigate('/')}>‹ Store</button>
-          <span className="co__mark">BUKUR</span>
-          <span />
+          <span className="co__mark"><img src={logo} alt="BUKUR" width="189" height="189" /></span>
+          <span className="co__topbar-end" />
         </div>
         <div className="co__done container container--narrow">
           <p className="u-eyebrow">Thank you</p>
-          <h1 className="u-title">Order placed</h1>
+          <h1 className="u-display u-display--light">Order placed</h1>
           <p className="co__ref">Reference <strong>{order.orderNumber || order.id}</strong> · Payment status: <strong>{order.paymentStatus}</strong></p>
 
           <div className="co__done-totals">
@@ -198,15 +199,15 @@ const Checkout = () => {
     <div className="co">
       <div className="co__topbar container">
         <button className="co__back" onClick={() => navigate('/cart')}>‹ Bag</button>
-        <Link to="/" className="co__mark">BUKUR</Link>
-        <span className="co__phone">+383 49 123 456</span>
+        <Link to="/" className="co__mark"><img src={logo} alt="BUKUR" width="189" height="189" /></Link>
+        <span className="co__phone">Secure checkout</span>
       </div>
 
       <div className="co__grid container">
         <div className="co__main">
           <form className="co__form" onSubmit={handleSubmit}>
             <section className="co__step">
-              <h2 className="co__step-title"><span>01</span> Shipping</h2>
+              <h2 className="co__step-title"><span className="co__step-num">01</span> Shipping</h2>
 
               <div className="co__radios">
                 <label className="co__radio">
@@ -251,7 +252,7 @@ const Checkout = () => {
             </section>
 
             <section className="co__step">
-              <h2 className="co__step-title"><span>02</span> Payment &amp; contact</h2>
+              <h2 className="co__step-title"><span className="co__step-num">02</span> Payment &amp; contact</h2>
               <div className="co__fields">
                 <div className="co__row">
                   <label className="co__field">Email*
@@ -262,7 +263,7 @@ const Checkout = () => {
                   </label>
                 </div>
 
-                <p className="u-fine" style={{ marginTop: '0.5rem' }}>Payment method</p>
+                <p className="co__label">Payment method</p>
                 <div className="co__radios co__radios--stack">
                   <label className="co__radio">
                     <input type="radio" name="paymentMethod" value={PAYMENT_METHODS.BANK_TRANSFER} checked={formData.paymentMethod === PAYMENT_METHODS.BANK_TRANSFER} onChange={handleChange} />
@@ -289,16 +290,19 @@ const Checkout = () => {
         </div>
 
         <aside className="co__summary">
-          <h2 className="u-fine">Order summary · {cartItems.length} {cartItems.length === 1 ? 'item' : 'items'}</h2>
+          <div className="co__sum-head">
+            <h2 className="co__sum-title">Order summary</h2>
+            <span className="co__sum-count">{cartItems.length} {cartItems.length === 1 ? 'item' : 'items'}</span>
+          </div>
           <ul className="co__sum-items">
             {cartItems.map((item, index) => (
               <li key={`${item.id}-${item.size}-${index}`}>
                 <div className="co__sum-thumb">
-                  {item.images?.[0] ? <Img src={item.images[0]} alt={item.name} sizes="54px" fill /> : <span />}
+                  {item.images?.[0] ? <Img src={item.images[0]} alt={item.name} sizes="60px" fill /> : <span />}
                 </div>
                 <div className="co__sum-info">
                   <span className="co__sum-name">{item.name}</span>
-                  <span className="u-fine u-muted">Qty {item.quantity}{item.size ? ` · EU ${item.size}` : ''}</span>
+                  <span className="co__sum-meta">Qty {item.quantity}{item.size ? ` · EU ${item.size}` : ''}</span>
                 </div>
                 <span className="co__sum-price">€{(item.price * item.quantity).toFixed(2)}</span>
               </li>
@@ -309,9 +313,11 @@ const Checkout = () => {
             <div><span>Shipping ({countryLabel})</span><span>{shippingEstCents > 0 ? money(shippingEstCents) : 'Free'}</span></div>
             <div className="co__sum-grand"><span>Estimated total</span><span>€{grandTotalEst.toFixed(2)}</span></div>
           </div>
-          <p className="u-fine u-muted" style={{ marginTop: '0.75rem', lineHeight: 1.7 }}>
-            This is an estimate. BUKUR calculates and confirms the final total when your order is placed.
-          </p>
+          <ul className="co__assure">
+            <li>Final total confirmed when your order is placed</li>
+            <li>Complimentary delivery across Kosovo &amp; the region</li>
+            <li>14-day returns</li>
+          </ul>
         </aside>
       </div>
     </div>

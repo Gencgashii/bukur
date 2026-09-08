@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import Img from './Img';
 import './ProductGallery.css';
 
-const STACK_SIZES = '(max-width: 900px) 100vw, 55vw';
+const STACK_SIZES = '(max-width: 900px) 100vw, 50vw';
 
 const ProductGallery = ({ images = [], alt = '' }) => {
   const list = images.filter(Boolean);
@@ -34,10 +34,16 @@ const ProductGallery = ({ images = [], alt = '' }) => {
 
   return (
     <div className="gal">
-      {/* desktop: stacked images */}
+      {/* desktop: a vertical stack of full-width frames that scroll with the page */}
       <div className="gal__stack">
         {list.map((src, i) => (
-          <button key={i} type="button" className="gal__frame" onClick={() => setLightbox(i)} aria-label={`Enlarge image ${i + 1}`}>
+          <button
+            key={i}
+            type="button"
+            className="gal__frame"
+            onClick={() => setLightbox(i)}
+            aria-label={`Enlarge image ${i + 1}`}
+          >
             <Img
               src={src}
               alt={i === 0 ? alt : `${alt} — view ${i + 1}`}

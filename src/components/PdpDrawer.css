@@ -1,0 +1,83 @@
+.pdp-drawer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  visibility: hidden;
+  transition: visibility 0s linear var(--dur-md);
+}
+.pdp-drawer.is-open { visibility: visible; transition-delay: 0s; }
+
+.pdp-drawer__scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(14, 12, 11, 0.42);
+  opacity: 0;
+  transition: opacity var(--dur-md) var(--ease-out);
+}
+.pdp-drawer.is-open .pdp-drawer__scrim { opacity: 1; }
+
+.pdp-drawer__panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: min(460px, 92vw);
+  background: var(--paper);
+  border-left: 1px solid var(--hairline);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform var(--dur-md) var(--ease-out);
+  overflow-y: auto;
+}
+.pdp-drawer.is-open .pdp-drawer__panel { transform: translateX(0); }
+
+.pdp-drawer__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(1.5rem, 4vw, 2.25rem) clamp(1.5rem, 4vw, 2.5rem);
+  border-bottom: 1px solid var(--hairline);
+}
+.pdp-drawer__title {
+  font-size: 0.62rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.pdp-drawer__close {
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  transition: color var(--dur-xs) var(--ease-out);
+}
+.pdp-drawer__close:hover { color: var(--ink); }
+
+.pdp-drawer__body {
+  padding: clamp(1.75rem, 4vw, 2.5rem);
+  color: var(--ink-soft);
+  line-height: 1.9;
+  font-size: 0.88rem;
+}
+.pdp-drawer__body h4 {
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 1.75rem 0 0.6rem;
+}
+.pdp-drawer__body h4:first-child { margin-top: 0; }
+.pdp-drawer__body p + p { margin-top: 0.75rem; }
+.pdp-drawer__body ul { list-style: none; display: grid; gap: 0.4rem; }
+.pdp-drawer__body li { position: relative; padding-left: 1rem; }
+.pdp-drawer__body li::before { content: '—'; position: absolute; left: 0; color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pdp-drawer__panel, .pdp-drawer__scrim { transition: none; }
+}

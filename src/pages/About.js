@@ -15,7 +15,7 @@ const About = () => {
         <Img src="/media/lookbook-daylight.jpg" alt="BUKUR WORLD collection" sizes="100vw" priority fill />
         <div className="about__hero-inner container">
           <p className="u-eyebrow" style={{ color: 'var(--ink)' }}>Est. Prishtina</p>
-          <h1 className="u-display">The house of BUKUR</h1>
+          <h1 className="u-display u-display--light">The house of BUKUR</h1>
         </div>
       </section>
 
@@ -46,7 +46,7 @@ const About = () => {
         <div className="container container--narrow">
           <Reveal>
             <p className="u-eyebrow" style={{ textAlign: 'center' }}>The Invitation</p>
-            <h2 className="u-title" style={{ margin: '1.25rem 0' }}>Made for the entrance.</h2>
+            <h2 className="u-title" style={{ marginBlock: '1.25rem' }}>Made for the entrance.</h2>
             <p style={{ textAlign: 'center' }}>
               <Link to="/products" className="btn btn--ghost">Shop all heels</Link>
             </p>

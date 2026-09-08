@@ -7,15 +7,26 @@ const MEDIA_SIZES = '(max-width: 1080px) 100vw, 55vw';
 
 /**
  * Editorial image + copy split section.
- * media: { type: 'image' | 'video', src, poster?, alt }
+ *   media: { type?: 'image' | 'video', src, poster?, alt }
+ *   flip  — image on the right, copy on the left
+ *   dark  — ink ground, light type
+ *   wide  — give the image more of the row (asymmetric)
+ *   priority — eager-load the image (above the fold)
  */
-const EditorialSplit = ({ eyebrow, title, body, cta, media, flip = false, dark = false, priority = false }) => {
+const EditorialSplit = ({ eyebrow, title, body, cta, media, flip = false, dark = false, wide = false, priority = false }) => {
   const ref = useReveal();
+  const cls = [
+    'editorial',
+    'reveal',
+    flip ? 'editorial--flip' : '',
+    dark ? 'editorial--dark' : '',
+    wide ? 'editorial--wide' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
-    <section
-      ref={ref}
-      className={`editorial reveal ${flip ? 'editorial--flip' : ''} ${dark ? 'editorial--dark' : ''}`}
-    >
+    <section ref={ref} className={cls}>
       <div className="editorial__media">
         {media.type === 'video' ? (
           <video src={media.src} poster={media.poster} autoPlay muted loop playsInline preload="none" aria-label={media.alt} />

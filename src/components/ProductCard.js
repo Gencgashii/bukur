@@ -5,8 +5,7 @@ import './ProductCard.css';
 
 const eur = (n) => `€${Number(n || 0).toLocaleString('en-IE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
-const CARD_SIZES =
-  '(max-width: 420px) 92vw, (max-width: 760px) 46vw, (max-width: 1080px) 31vw, 24vw';
+const CARD_SIZES = '(max-width: 380px) 92vw, (max-width: 760px) 46vw, (max-width: 1080px) 31vw, 24vw';
 
 const ProductCard = ({ product, priority = false, index = 0 }) => {
   const images = product.images && product.images.length ? product.images : [product.image].filter(Boolean);
@@ -18,7 +17,7 @@ const ProductCard = ({ product, priority = false, index = 0 }) => {
     <Link
       to={`/product/${product.id}`}
       className="pcard"
-      style={{ animationDelay: `${Math.min(index, 8) * 55}ms` }}
+      style={{ animationDelay: `${Math.min(index, 8) * 60}ms` }}
     >
       <div className="pcard__media">
         {primary && (
@@ -43,6 +42,7 @@ const ProductCard = ({ product, priority = false, index = 0 }) => {
         )}
         {soldOut && <span className="pcard__tag pcard__tag--out">Sold out</span>}
         {!soldOut && product.newArrival && <span className="pcard__tag">New</span>}
+        <span className="pcard__view" aria-hidden="true">View</span>
       </div>
       <div className="pcard__info">
         <span className="pcard__name">{product.name}</span>

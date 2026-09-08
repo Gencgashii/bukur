@@ -7,32 +7,56 @@ import EditorialSplit from '../components/EditorialSplit';
 import ShopByCategory from '../components/ShopByCategory';
 import Reveal from '../components/Reveal';
 import Img from '../components/Img';
+import homeContent from '../content/home';
 import './Home.css';
-
-const HERO_IMAGE = '/media/campaign-spotlight.jpg';
 
 const Home = () => {
   const { products, loading } = useProducts();
-  usePageMeta(null, 'BUKUR WORLD — sculptural heels, designed in Prishtina. Discover the new collection of slingbacks, pumps and statement heels.');
+  usePageMeta(
+    null,
+    'BUKUR WORLD — sculptural heels, designed in Prishtina. Discover the new collection of slingbacks, pumps and statement heels.'
+  );
+
+  const c = homeContent;
 
   const newArrivals = products.filter((p) => p.newArrival).slice(0, 4);
   const arrivals = (newArrivals.length ? newArrivals : products).slice(0, 4);
-  const featured = products.filter((p) => p.featured).slice(0, 3);
-  const signature = (featured.length ? featured : products).slice(0, 3);
+
+  const [ed1, ed2] = c.editorials;
 
   return (
     <div className="home">
+      {/* 1 — HERO ------------------------------------------------------------- */}
       <section className="hero">
         <div className="hero__media">
-          <Img src={HERO_IMAGE} alt="BUKUR WORLD — the new collection" sizes="100vw" priority fill />
+          <Img src={c.hero.image} alt={c.hero.alt} sizes="100vw" priority fill imgClassName="media-drift" />
         </div>
         <div className="hero__inner">
-          <p className="u-eyebrow hero__kicker">BUKUR WORLD</p>
-          <h1 className="hero__title">Made for the entrance.</h1>
-          <Link to="/products" className="btn btn--light">Discover the collection</Link>
+          <p className="u-eyebrow hero__kicker">{c.hero.eyebrow}</p>
+          <h1 className="hero__title">{c.hero.title}</h1>
+          <Link to={c.hero.cta.to} className="btn btn--light hero__cta">{c.hero.cta.label}</Link>
         </div>
+        <span className="hero__scroll" aria-hidden="true">Scroll</span>
       </section>
 
+      {/* 2 — one quiet brand line, lots of air ------------------------------ */}
+      <section className="brandline container container--narrow">
+        <Reveal className="reveal--soft">
+          <h2 className="u-title">{c.brandStatement}</h2>
+        </Reveal>
+      </section>
+
+      {/* 3 — editorial: the signature ------------------------------------- */}
+      <EditorialSplit
+        eyebrow={ed1.eyebrow}
+        title={ed1.title}
+        body={ed1.body}
+        cta={ed1.cta}
+        media={{ type: 'image', ...ed1.media }}
+        wide={ed1.wide}
+      />
+
+      {/* 4 — the first edit (product-driven) ------------------------------- */}
       <section className="section">
         <div className="container">
           <div className="section-head">
@@ -52,62 +76,51 @@ const Home = () => {
         </div>
       </section>
 
-      <EditorialSplit
-        eyebrow="The Signature"
-        title="The bow, reimagined."
-        body="A pointed satin slingback with a hand-folded bow and the BUKUR monogram. Floral-embroidered, quietly precise — the house's defining silhouette."
-        cta={{ to: '/products?category=Slingbacks', label: 'Explore slingbacks' }}
-        media={{ type: 'image', src: '/media/bow-slingback-trio.jpg', alt: 'BUKUR Signature Bow Slingback in blush, black and periwinkle' }}
-      />
-
-      <ShopByCategory products={products} />
-
-      <EditorialSplit
-        flip
-        dark
-        eyebrow="Statement"
-        title="Sculpture for the foot."
-        body="Draped tulle set on the openwork BUKUR heel. An evening shoe built like an object — meant to be looked at twice."
-        cta={{ to: '/products?category=Statement', label: 'See the statement edit' }}
-        media={{ type: 'image', src: '/media/veil-mesh-trio.jpg', alt: 'BUKUR Veil Mesh Pump in rouge, ivory and black' }}
-      />
-
-      <section className="section">
-        <div className="container">
-          <div className="section-head">
-            <div className="section-head__title">
-              <p className="u-eyebrow">The House</p>
-              <h2 className="u-title">Signature styles</h2>
-            </div>
-            <Link to="/products" className="link-underline link-quiet">All heels</Link>
-          </div>
-          <ProductGrid products={signature} cols={3} />
+      {/* 5 — full-bleed daylight beat ------------------------------------- */}
+      <section className={`editorial-full ${c.editorialFull.align === 'center' ? 'editorial-full--center' : ''}`}>
+        <Img src={c.editorialFull.image} alt={c.editorialFull.alt} sizes="100vw" fill imgClassName="media-drift" />
+        <div className="editorial-full__inner">
+          <p className="u-eyebrow" style={{ color: 'var(--on-dark)' }}>{c.editorialFull.eyebrow}</p>
+          <h2 className="u-display u-display--light" style={{ color: 'var(--on-dark)' }}>{c.editorialFull.title}</h2>
         </div>
       </section>
 
+      {/* 6 — shop by silhouette (art-directed, stable) ------------------- */}
+      <ShopByCategory categories={c.categories} products={products} />
+
+      {/* 7 — editorial: statement -------------------------------------- */}
+      <EditorialSplit
+        eyebrow={ed2.eyebrow}
+        title={ed2.title}
+        body={ed2.body}
+        cta={ed2.cta}
+        media={{ type: 'image', ...ed2.media }}
+        flip={ed2.flip}
+        dark={ed2.dark}
+        wide={ed2.wide}
+      />
+
+      {/* 8 — the house ------------------------------------------------- */}
       <section className="section section--tight statement" id="about">
         <div className="container container--narrow">
-          <Reveal>
-            <p className="u-eyebrow" style={{ textAlign: 'center' }}>Est. Prishtina</p>
-            <h2 className="u-title" style={{ margin: '1.25rem 0' }}>Designed in Prishtina. Made to be remembered.</h2>
-            <p className="u-lede">
-              BUKUR is a modern luxury footwear house from Kosovo. Every silhouette is drawn with a
-              sculptural instinct — considered proportions, a confident heel, and details you notice
-              on the second look.
-            </p>
-            <p style={{ marginTop: '1.75rem' }}>
-              <Link to="/about" className="link-underline">Read the house story</Link>
+          <Reveal className="reveal--soft">
+            <p className="u-eyebrow u-center">{c.house.eyebrow}</p>
+            <h2 className="u-title" style={{ marginBlock: '1.25rem' }}>{c.house.title}</h2>
+            <p className="u-lede">{c.house.body}</p>
+            <p style={{ marginTop: '1.9rem' }}>
+              <Link to={c.house.cta.to} className="link-underline">{c.house.cta.label}</Link>
             </p>
           </Reveal>
         </div>
       </section>
 
+      {/* 9 — campaign band ------------------------------------------- */}
       <section className="campaign">
-        <Img src="/media/monogram-mesh-hero.jpg" alt="BUKUR Monogram Mesh Slingback" sizes="100vw" fill />
+        <Img src={c.campaign.image} alt={c.campaign.alt} sizes="100vw" fill imgClassName="media-drift" />
         <div className="campaign__inner">
-          <p className="u-eyebrow" style={{ color: 'var(--on-dark)' }}>The Collection</p>
-          <h2 className="u-display" style={{ color: 'var(--on-dark)' }}>Enter BUKUR&nbsp;WORLD</h2>
-          <Link to="/products" className="btn btn--light">Shop all heels</Link>
+          <p className="u-eyebrow" style={{ color: 'var(--on-dark)' }}>{c.campaign.eyebrow}</p>
+          <h2 className="u-display u-display--light" style={{ color: 'var(--on-dark)' }}>{c.campaign.title}</h2>
+          <Link to={c.campaign.cta.to} className="btn btn--outline-light">{c.campaign.cta.label}</Link>
         </div>
       </section>
     </div>

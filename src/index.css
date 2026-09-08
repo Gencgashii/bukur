@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Manrope:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Manrope:wght@400;500;600&display=swap');
 
 *,
 *::before,
@@ -8,25 +8,15 @@
   box-sizing: border-box;
 }
 
-:root {
-  color-scheme: light;
-  /* legacy aliases kept so any un-migrated rule still resolves */
-  --primary-color: #f8f4ec;
-  --secondary-color: #171412;
-  --text-main: #171412;
-  --text-inverse: #f8f4ec;
-  --text-color: #171412;
-  --text-light: #857c71;
-  --border-color: rgba(23, 20, 18, 0.14);
-}
+:root { color-scheme: light; }
 
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
 
 body {
   font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
   color: #171412;
   background: #fefcf7;
-  line-height: 1.6;
+  line-height: 1.62;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

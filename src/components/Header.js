@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import logo from '../assets/bukur-logo.png';
 import './Header.css';
 
 const NAV = [
@@ -63,7 +64,9 @@ const Header = () => {
           ))}
         </nav>
 
-        <Link to="/" className="hdr__wordmark" aria-label="BUKUR WORLD home">BUKUR</Link>
+        <Link to="/" className="hdr__wordmark" aria-label="BUKUR WORLD home">
+          <img src={logo} alt="BUKUR" className="hdr__logo" width="189" height="189" />
+        </Link>
 
         <nav className="hdr__nav hdr__nav--right" aria-label="Utilities">
           <button className="hdr__link hdr__search-btn" onClick={() => setSearchOpen(true)} aria-label="Search">Search</button>
@@ -76,7 +79,7 @@ const Header = () => {
       {/* mobile / full nav overlay */}
       <div className={`overlay ${menuOpen ? 'is-open' : ''}`} aria-hidden={!menuOpen}>
         <div className="overlay__top">
-          <span className="hdr__wordmark" style={{ color: 'var(--ink)' }}>BUKUR</span>
+          <span className="hdr__wordmark"><img src={logo} alt="BUKUR" className="hdr__logo" width="189" height="189" /></span>
           <button className="overlay__close" onClick={() => setMenuOpen(false)}>Close</button>
         </div>
         <nav className="overlay__nav">

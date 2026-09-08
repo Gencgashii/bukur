@@ -110,8 +110,8 @@ const Products = () => {
         </div>
 
         {loading && !products.length ? (
-          <div className="pgrid">
-            {Array.from({ length: 6 }).map((_, i) => <div key={i} className="skeleton sk-card" />)}
+          <div className="pgrid pgrid--4">
+            {Array.from({ length: 8 }).map((_, i) => <div key={i} className="skeleton sk-card" />)}
           </div>
         ) : filtered.length === 0 ? (
           <div className="state">
@@ -126,7 +126,7 @@ const Products = () => {
           </div>
         ) : (
           <>
-            <ProductGrid products={filtered.slice(0, visible)} cols={3} priorityCount={3} />
+            <ProductGrid products={filtered.slice(0, visible)} cols={4} priorityCount={4} />
             {visible < filtered.length && (
               <div className="collection__more">
                 <button className="btn btn--ghost" onClick={() => setVisible((v) => v + PAGE)}>

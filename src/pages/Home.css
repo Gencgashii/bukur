@@ -1,7 +1,38 @@
 /* Home page — most styles come from luxury.css primitives.
-   Section rhythm: hero (full) → new arrivals → editorial → categories →
-   editorial (dark) → signature → statement → campaign. */
+   Cadence: hero → brand line → editorial → first edit → full-bleed →
+   silhouettes → editorial (dark) → house → campaign. */
 
-.home > .section:first-of-type { padding-top: var(--section-y-lg); }
+.home .brandline { padding-block: clamp(5rem, 11vw, 10rem); }
+.home .brandline .u-title {
+  font-size: clamp(1.6rem, 2.6vw, 2.35rem);
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+
+/* lead-in after an editorial — kept modest so sections don't drift apart */
+.home .editorial + .section:not(.section--tight) { padding-top: clamp(3rem, 6vw, 5.5rem); }
+
+/* the house / "Est. Prishtina" block — deliberately compact */
+.home .statement { padding-block: clamp(2.25rem, 4.5vw, 3.75rem); }
+
+/* tighten the gap under the full-bleed Lookbook. The next section carries an
+   opaque page-ground background and is pulled up a couple of px on top of the
+   Lookbook, so no seam line can show between the two. */
+.home .editorial-full + .section {
+  position: relative;
+  z-index: 1;
+  margin-top: -3px;
+  padding-top: clamp(2.5rem, 5vw, 4rem);
+  padding-bottom: 0;
+  background: var(--paper);
+}
+
+/* the silhouette tiles run straight into the dark editorial below —
+   no gap, and no top fade on that editorial */
+.home .section + .editorial::before { display: none; }
 
 .home .campaign { margin-top: 0; }
+
+@media (max-width: 760px) {
+  .home .brandline { padding-block: clamp(3.5rem, 14vw, 6rem); }
+}

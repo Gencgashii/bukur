@@ -4,17 +4,29 @@ import useReveal from '../hooks/useReveal';
 import Img from './Img';
 
 /**
- * "Shop by category" — only renders categories that actually exist in the
- * loaded product data. Picks a representative product image per category.
+ * "Shop by silhouette".
+ *
+ * Prefers an explicit editorial `categories` list ([{ name, image }]) so the
+ * imagery is art-directed and STABLE — it does not shift when products change.
+ * If none is supplied it falls back to deriving one representative image per
+ * category from the loaded product data.
  */
-const ShopByCategory = ({ products = [] }) => {
+const FALLBACK_IMAGE = '/media/lookbook-daylight.jpg';
+
+const ShopByCategory = ({ categories, products = [] }) => {
   const ref = useReveal();
-  const seen = new Map();
-  for (const p of products) {
-    if (!p.category || seen.has(p.category)) continue;
-    seen.set(p.category, p.images?.[0] || p.image || '/media/lookbook-daylight.jpg');
+
+  let cats = Array.isArray(categories) && categories.length ? categories.map((c) => [c.name, c.image || FALLBACK_IMAGE]) : null;
+
+  if (!cats) {
+    const seen = new Map();
+    for (const p of products) {
+      if (!p.category || seen.has(p.category)) continue;
+      seen.set(p.category, p.images?.[0] || p.image || FALLBACK_IMAGE);
+    }
+    cats = [...seen.entries()];
   }
-  const cats = [...seen.entries()];
+
   if (!cats.length) return null;
 
   return (
@@ -31,7 +43,7 @@ const ShopByCategory = ({ products = [] }) => {
       <div className="cats">
         {cats.map(([name, img]) => (
           <Link key={name} to={`/products?category=${encodeURIComponent(name)}`} className="cat">
-            <Img src={img} alt={`${name} — BUKUR WORLD`} sizes="(max-width: 760px) 100vw, 33vw" fill />
+            <Img src={img} alt={`${name} — BUKUR WORLD`} sizes="(max-width: 760px) 100vw, 25vw" fill />
             <span className="cat__label">{name}<small>Discover</small></span>
           </Link>
         ))}
