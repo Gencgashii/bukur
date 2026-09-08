@@ -260,6 +260,8 @@ button { font-family: inherit; }
 .img--fill { position: absolute; inset: 0; width: 100%; height: 100%; }
 .img--fill .img__el { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .img--cover .img__el { width: 100%; height: 100%; object-fit: cover; }
+/* a dead image URL falls back to the quiet cream field, not a broken glyph */
+.img--failed .img__el { visibility: hidden; }
 
 /* ---- motion system ------------------------------------------------------- */
 /* scroll reveal — pair with useReveal() which adds .is-in */
@@ -314,6 +316,7 @@ button { font-family: inherit; }
   letter-spacing: 0.24em;
   text-transform: uppercase;
   padding: 0.62rem 1rem;
+  padding-top: max(0.62rem, env(safe-area-inset-top));
   background: var(--ink);
   color: var(--on-dark);
 }
@@ -403,7 +406,7 @@ button { font-family: inherit; }
 .hdr.is-plain { position: sticky; background: var(--paper); color: var(--ink); border-color: var(--line); }
 .hdr.is-plain .hdr__bar { display: none; }
 
-.hdr__burger { display: none; width: 1.75rem; height: 1.1rem; position: relative; background: none; border: 0; cursor: pointer; }
+.hdr__burger { display: none; width: 1.75rem; height: 1.1rem; position: relative; background: none; border: 0; cursor: pointer; color: inherit; appearance: none; -webkit-appearance: none; -webkit-tap-highlight-color: transparent; }
 .hdr__burger span { position: absolute; left: 0; width: 100%; height: 1px; background: currentColor; transition: transform var(--dur-sm) var(--ease), opacity var(--dur-sm) var(--ease); }
 .hdr__burger span:nth-child(1) { top: 0; }
 .hdr__burger span:nth-child(2) { top: 50%; }
@@ -783,15 +786,24 @@ button { font-family: inherit; }
   .hdr__burger { display: block; }
   .hdr__inner { grid-template-columns: auto 1fr auto; }
   .hdr__logo { height: 2rem; }
+  /* iPhone notch */
+  .hdr.is-plain .hdr__inner,
+  .hdr.is-solid .hdr__inner { padding-top: max(1rem, env(safe-area-inset-top)); }
   .pgrid, .pgrid--4, .pgrid--2 { --cols: 2; gap: 1.5rem 0.9rem; }
   .pcard__name { font-size: 1rem; }
   .pcard__price { font-size: 0.74rem; }
   .hero { height: 92svh; }
   .hero__ctrls { bottom: 1.5rem; right: 1.25rem; }
+  /* silhouette tiles: square on mobile so the section isn't a long scroll */
+  .cat { aspect-ratio: 1 / 1; }
+  .cat__label { padding: 1.5rem 1.35rem; }
+  /* PDP mobile sticky bar clears the home indicator */
+  .pd__stickybuy-inner { padding-bottom: max(0.7rem, env(safe-area-inset-bottom)); }
   .ft__inner { grid-template-columns: 1fr 1fr; gap: 2rem; }
   .ft__legal { flex-direction: column; }
 }
-@media (max-width: 380px) {
-  .pgrid, .pgrid--4, .pgrid--2 { --cols: 1; }
+@media (max-width: 400px) {
+  .pgrid, .pgrid--4, .pgrid--2 { gap: 1.15rem 0.7rem; }
+  .pcard__name { font-size: 0.92rem; }
   .hero__title { font-size: clamp(2.4rem, 12vw, 3.4rem); }
 }

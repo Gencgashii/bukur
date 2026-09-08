@@ -33,6 +33,9 @@ export default function Img({
   const loadProps = {
     loading: priority ? 'eager' : 'lazy',
     decoding: 'async',
+    // A dead URL (e.g. an admin upload lost to ephemeral storage) shows the
+    // quiet cream field instead of the browser's broken-image glyph + alt text.
+    onError: (e) => e.currentTarget.closest('.img')?.classList.add('img--failed'),
     ...(priority ? { fetchpriority: 'high' } : {}),
   };
 
