@@ -28,8 +28,9 @@ export default function Img({
   imgClassName = '',
   ...rest
 }) {
+  // `alt` is applied explicitly on each <img> below (keeps jsx-a11y/alt-text
+  // happy — it can't see props coming from a spread).
   const loadProps = {
-    alt,
     loading: priority ? 'eager' : 'lazy',
     decoding: 'async',
     ...(priority ? { fetchpriority: 'high' } : {}),
@@ -44,7 +45,7 @@ export default function Img({
   if (!m) {
     return (
       <span className={wrapCls} style={wrapStyle}>
-        <img className={imgEl} src={src || ''} {...loadProps} {...rest} />
+        <img className={imgEl} src={src || ''} alt={alt} {...loadProps} {...rest} />
       </span>
     );
   }
@@ -57,7 +58,7 @@ export default function Img({
       <picture>
         <source type="image/avif" srcSet={set('avif')} sizes={sizes} />
         <source type="image/webp" srcSet={set('webp')} sizes={sizes} />
-        <img className={imgEl} src={`${base}.jpg`} sizes={sizes} {...loadProps} {...rest} />
+        <img className={imgEl} src={`${base}.jpg`} sizes={sizes} alt={alt} {...loadProps} {...rest} />
       </picture>
     </span>
   );
