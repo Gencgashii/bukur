@@ -51,12 +51,12 @@ services:
       # Media storage for ADMIN-UPLOADED images only (storefront photography is
       # a build-time pipeline: public/media/*.{avif,webp,jpg}, served static).
       #
-      # PRODUCTION MUST NOT use 'local' — Render's disk is ephemeral and admin
-      # uploads would be lost on every redeploy/restart. Set this to "s3" and
-      # provide the S3_* vars below. If "s3" is set with any required S3_* var
-      # missing, the API fails to boot (fail-closed; no silent local fallback).
+      # SMOKE TEST: "local" — the API boots with no object storage; admin image
+      # uploads work but do NOT survive a redeploy (Render's disk is ephemeral).
+      # PRODUCTION: change to "s3" and fill every S3_* var below (Cloudflare R2
+      # etc.). With "s3" and any S3_* missing the API fails to boot (fail-closed).
       - key: STORAGE_DRIVER
-        value: "s3"
+        value: "local"
       # Public read base for stored objects (no trailing slash). e.g.
       # https://img.bukurworld.com  or  https://<bucket>.s3.<region>.amazonaws.com
       - key: S3_PUBLIC_BASE_URL
@@ -92,11 +92,12 @@ services:
       - key: PAYMENTS_CARD_PROVIDER
         value: "teb"
       # Transactional order-confirmation email. Sent server-side only.
-      # In production EMAIL_PROVIDER must be "resend" (console/memory are
-      # rejected at boot). If EMAIL_ENABLED=true and EMAIL_FROM or the provider
-      # secret is missing, the API fails to boot (fail-closed).
+      # SMOKE TEST: "false" — orders still succeed, confirmation is recorded as
+      # "skipped". PRODUCTION: set "true", keep EMAIL_PROVIDER=resend, and fill
+      # EMAIL_FROM + RESEND_API_KEY (else the API fails to boot). console/memory
+      # providers are rejected at boot when NODE_ENV=production.
       - key: EMAIL_ENABLED
-        value: "true"
+        value: "false"
       - key: EMAIL_PROVIDER
         value: "resend"
       # "BUKUR WORLD <orders@your-verified-domain.com>" — domain must be
