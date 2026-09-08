@@ -1,77 +1,54 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
+import Img from './Img';
 import './ProductCard.css';
 
-const ProductCard = ({ product }) => {
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+const eur = (n) => `€${Number(n || 0).toLocaleString('en-IE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
-  const handlePrev = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (product.images && product.images.length > 0) {
-      setCurrentImageIndex((prev) => (prev === 0 ? product.images.length - 1 : prev - 1));
-    }
-  };
+const CARD_SIZES =
+  '(max-width: 420px) 92vw, (max-width: 760px) 46vw, (max-width: 1080px) 31vw, 24vw';
 
-  const handleNext = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (product.images && product.images.length > 0) {
-      setCurrentImageIndex((prev) => (prev === product.images.length - 1 ? 0 : prev + 1));
-    }
-  };
-
-  const images = product.images && product.images.length > 0 ? product.images : [product.image];
-  const currentImage = images[currentImageIndex];
-  const hasMultipleImages = images.length > 1;
+const ProductCard = ({ product, priority = false, index = 0 }) => {
+  const images = product.images && product.images.length ? product.images : [product.image].filter(Boolean);
+  const primary = images[0];
+  const secondary = images[1];
+  const soldOut = product.inStock === false;
 
   return (
-    <Link to={`/product/${product.id}`} className="product-card">
-      <div className="product-image-wrapper">
-        <img
-          src={currentImage}
-          alt={product.name}
-          className={`product-image ${currentImageIndex === 0 && hasMultipleImages ? 'primary-image' : ''}`}
-        />
-        {currentImageIndex === 0 && hasMultipleImages && (
-          <img
-            src={product.images[1]}
-            alt={`${product.name} alternate`}
-            className="product-image secondary-image"
+    <Link
+      to={`/product/${product.id}`}
+      className="pcard"
+      style={{ animationDelay: `${Math.min(index, 8) * 55}ms` }}
+    >
+      <div className="pcard__media">
+        {primary && (
+          <Img
+            src={primary}
+            alt={`${product.name} — BUKUR WORLD`}
+            sizes={CARD_SIZES}
+            priority={priority}
+            fill
+            className="pcard__img pcard__img--primary"
           />
         )}
-
-        {hasMultipleImages && (
-          <>
-            <button className="carousel-btn prev-btn" onClick={handlePrev} aria-label="Previous image">
-              <svg width="8" height="14" viewBox="0 0 8 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M7 1L1 7L7 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-            <button className="carousel-btn next-btn" onClick={handleNext} aria-label="Next image">
-              <svg width="8" height="14" viewBox="0 0 8 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M1 1L7 7L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-            <div className="carousel-indicators">
-              {images.map((_, index) => (
-                <div
-                  key={index}
-                  className={`indicator ${index === currentImageIndex ? 'active' : ''}`}
-                />
-              ))}
-            </div>
-          </>
+        {secondary && (
+          <Img
+            src={secondary}
+            alt=""
+            aria-hidden="true"
+            sizes={CARD_SIZES}
+            fill
+            className="pcard__img pcard__img--secondary"
+          />
         )}
-
-        {!product.inStock && (
-          <div className="out-of-stock-badge">Out of Stock</div>
-        )}
+        {soldOut && <span className="pcard__tag pcard__tag--out">Sold out</span>}
+        {!soldOut && product.newArrival && <span className="pcard__tag">New</span>}
       </div>
-      <div className="product-info">
-        <h3 className="product-name">{product.name}</h3>
-        <p className="product-price">€{product.price.toFixed(2)}</p>
+      <div className="pcard__info">
+        <span className="pcard__name">{product.name}</span>
+        <span className="pcard__price">{eur(product.price)}</span>
       </div>
+      {product.category && <div className="pcard__meta">{product.category}</div>}
     </Link>
   );
 };

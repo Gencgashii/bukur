@@ -1,13 +1,29 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useOrders } from '../context/OrdersContext';
+import usePageMeta from '../hooks/usePageMeta';
+import Img from '../components/Img';
+import {
+  API_URL,
+  BANK_DETAILS,
+  PAYMENT_METHODS,
+  SHIPPING_COUNTRIES,
+  shippingEstimateCents,
+} from '../config';
 import './Checkout.css';
+
+const money = (cents) => `€${(Number(cents || 0) / 100).toFixed(2)}`;
 
 const Checkout = () => {
   const navigate = useNavigate();
   const { cartItems, getCartTotal, clearCart } = useCart();
   const { addOrder } = useOrders();
+  usePageMeta('Checkout');
+
+  const initialCountry =
+    (typeof localStorage !== 'undefined' && localStorage.getItem('bukur-ship-country')) || 'XK';
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -17,97 +33,161 @@ const Checkout = () => {
     postalCode: '',
     email: '',
     phone: '',
-    paymentMethod: 'card'
+    country: SHIPPING_COUNTRIES.some((c) => c.code === initialCountry) ? initialCountry : 'XK',
+    paymentMethod: PAYMENT_METHODS.BANK_TRANSFER,
   });
   const [deliveryMethod, setDeliveryMethod] = useState('home');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [orderPlaced, setOrderPlaced] = useState(false);
-  const [confirmationEmailSent, setConfirmationEmailSent] = useState(false);
-  const [isViewDetailsOpen, setIsViewDetailsOpen] = useState(false);
+  const [orderResult, setOrderResult] = useState(null);
+  const [error, setError] = useState('');
+  const idempotencyKeyRef = useRef(null);
 
-  // Auto-detect shipping cost based on entered Country/State string
-  // If user types 'kosovo' or 'albania' (case-insensitive)
-  const isKosovo = formData.state.toLowerCase().includes('kosovo');
-  const isAlbania = formData.state.toLowerCase().includes('albania');
-  const shippingCost = isKosovo ? 1.80 : isAlbania ? 4.80 : 0;
-  const grandTotal = getCartTotal() + shippingCost;
+  // Pre-submit ESTIMATE only. The backend returns the authoritative total.
+  const shippingEstCents = shippingEstimateCents(formData.country);
+  const subtotalEst = getCartTotal();
+  const grandTotalEst = subtotalEst + shippingEstCents / 100;
+  const countryLabel =
+    SHIPPING_COUNTRIES.find((c) => c.code === formData.country)?.label || formData.country;
 
-  if (cartItems.length === 0 && !orderPlaced) {
+  if (cartItems.length === 0 && !orderResult) {
     return (
-      <div className="checkout-page-gucci empty">
-        <header className="checkout-header-gucci">
-          <button className="back-link" onClick={() => navigate('/cart')}>
-            ‹ Back to Shopping Bag
+      <div className="co">
+        <div className="co__topbar container">
+          <button className="co__back" onClick={() => navigate('/cart')}>‹ Bag</button>
+          <span className="co__mark">BUKUR</span>
+          <span />
+        </div>
+        <div className="state">
+          <p className="u-eyebrow">Checkout</p>
+          <h1 className="u-title">Your bag is empty</h1>
+          <button className="btn btn--ghost btn--sm" onClick={() => navigate('/products')} style={{ justifySelf: 'center' }}>
+            Continue shopping
           </button>
-          <div className="logo" style={{ letterSpacing: '0.2em', fontWeight: '700' }}>BUKUR</div>
-        </header>
-        <div className="container" style={{ textAlign: 'center', padding: '100px 0' }}>
-          <p>Your cart is empty. Please add items to your cart first.</p>
-          <button className="continue-button-gucci" onClick={() => navigate('/')}>Continue Shopping</button>
         </div>
       </div>
     );
   }
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const initiatePayment = async (orderId) => {
+    const res = await fetch(`${API_URL.replace(/\/$/, '')}/store/custom/payments/initiate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Idempotency-Key': `${idempotencyKeyRef.current}:pay`,
+      },
+      body: JSON.stringify({ orderId }),
     });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      const err = new Error(data?.error?.message || 'Online payment could not be started.');
+      err.code = data?.error?.code;
+      err.status = res.status;
+      throw err;
+    }
+    return data;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return; // guard double-submit / double-click
+    setError('');
     setIsSubmitting(true);
 
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    const total = grandTotal;
+    if (!idempotencyKeyRef.current) {
+      idempotencyKeyRef.current =
+        (typeof crypto !== 'undefined' && crypto.randomUUID && crypto.randomUUID()) ||
+        `bk-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
 
     try {
-      const createdOrder = await addOrder({
+      const payload = {
         customerName: `${formData.firstName} ${formData.lastName}`.trim(),
         customerEmail: formData.email,
         phone: formData.phone,
+        country: formData.country,
         paymentMethod: formData.paymentMethod,
-        paymentStatus: formData.paymentMethod === 'card' ? 'Captured' : 'Authorized',
-        fulfillmentStatus: 'Not fulfilled',
+        shippingMethod: deliveryMethod === 'store' ? 'pickup' : 'standard',
         shippingAddress: {
           address: formData.address,
           city: formData.city,
           state: formData.state,
           postalCode: formData.postalCode,
         },
-        items: cartItems,
-        total,
-      });
+        items: cartItems.map((i) => ({ id: i.id, size: i.size, quantity: i.quantity })),
+        total: grandTotalEst, // informational only; server recalculates
+      };
+
+      const created = await addOrder(payload, { idempotencyKey: idempotencyKeyRef.current });
+
+      let payment = null;
+      let paymentNotice = '';
+      if (created.requiresPayment) {
+        try {
+          payment = await initiatePayment(created.orderId);
+          if (payment?.redirectUrl) {
+            paymentNotice = 'Your order is placed. Continue to the secure payment page to complete payment.';
+          }
+        } catch (payErr) {
+          paymentNotice =
+            payErr.status === 501
+              ? 'Your order is placed. Online card payment is not available yet — we will email you secure payment instructions.'
+              : `Your order is placed, but online payment could not start: ${payErr.message}`;
+        }
+      }
 
       clearCart();
-      setConfirmationEmailSent(Boolean(createdOrder?.emailSent));
-      setOrderPlaced(true);
+      setOrderResult({ order: created, payment, paymentNotice });
+    } catch (submitErr) {
+      // No fake success. Cart is preserved. Customer sees the real reason.
+      setError(submitErr.message || 'Your order could not be placed. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (orderPlaced) {
+  if (orderResult) {
+    const { order, paymentNotice } = orderResult;
+    const totals = order.totals || {};
+    const isBankTransfer = order.paymentMethod === PAYMENT_METHODS.BANK_TRANSFER;
     return (
-      <div className="checkout-page-gucci empty">
-        <header className="checkout-header-gucci">
-          <button className="back-link" onClick={() => navigate('/')}>
-            ‹ Back to Store
-          </button>
-          <div className="logo" style={{ letterSpacing: '0.2em', fontWeight: '700' }}>BUKUR</div>
-        </header>
-        <div className="order-success-gucci">
-          <div className="success-icon">✓</div>
-          <h1>Order Placed Successfully!</h1>
-          <p>
-            {confirmationEmailSent
-              ? `Your confirmation has been sent to ${formData.email}.`
-              : 'Your order has been saved. Confirmation email delivery is not available yet.'}
-          </p>
-          <button className="continue-button-gucci" onClick={() => navigate('/')}>
-            Continue Shopping
+      <div className="co">
+        <div className="co__topbar container">
+          <button className="co__back" onClick={() => navigate('/')}>‹ Store</button>
+          <span className="co__mark">BUKUR</span>
+          <span />
+        </div>
+        <div className="co__done container container--narrow">
+          <p className="u-eyebrow">Thank you</p>
+          <h1 className="u-title">Order placed</h1>
+          <p className="co__ref">Reference <strong>{order.orderNumber || order.id}</strong> · Payment status: <strong>{order.paymentStatus}</strong></p>
+
+          <div className="co__done-totals">
+            <div><span>Subtotal</span><span>{money(totals.subtotalCents)}</span></div>
+            <div><span>Shipping</span><span>{money(totals.shippingCents)}</span></div>
+            {totals.taxCents ? <div><span>Tax</span><span>{money(totals.taxCents)}</span></div> : null}
+            <div className="co__done-total"><span>Total</span><span>{money(totals.totalCents)}</span></div>
+          </div>
+
+          {isBankTransfer && (
+            <div className="co__bank">
+              <p className="u-fine">Bank transfer instructions</p>
+              <p>Account holder: {BANK_DETAILS.holder}</p>
+              <p>IBAN: {BANK_DETAILS.iban}</p>
+              <p>Bank: {BANK_DETAILS.bank}{BANK_DETAILS.swift ? ` · SWIFT ${BANK_DETAILS.swift}` : ''}</p>
+              <p>Amount: {money(totals.totalCents)}</p>
+              <p>Payment reference: <strong>{order.orderNumber || order.id}</strong></p>
+              <p className="u-muted">Your order ships once we confirm the transfer.</p>
+            </div>
+          )}
+
+          {paymentNotice && <p className="co__notice">{paymentNotice}</p>}
+
+          <button className="btn btn--ghost" style={{ marginTop: '2rem' }} onClick={() => navigate('/')}>
+            Continue shopping
           </button>
         </div>
       </div>
@@ -115,219 +195,124 @@ const Checkout = () => {
   }
 
   return (
-    <div className="checkout-page-gucci">
-      <header className="checkout-header-gucci">
-        <button className="back-link" onClick={() => navigate('/cart')}>
-          ‹ Back to Shopping Bag
-        </button>
-        <div className="logo" style={{ letterSpacing: '0.2em', fontWeight: '700' }}>BUKUR</div>
-        <div className="contact-phone">📞 +383 49 123 456</div>
-      </header>
+    <div className="co">
+      <div className="co__topbar container">
+        <button className="co__back" onClick={() => navigate('/cart')}>‹ Bag</button>
+        <Link to="/" className="co__mark">BUKUR</Link>
+        <span className="co__phone">+383 49 123 456</span>
+      </div>
 
-      <div className="checkout-container-gucci">
-        <div className="checkout-left">
-          <div className="checkout-user-info">
-            <span className="user-label">YOU ARE CHECKING OUT AS:</span>
-            <span className="user-email">{formData.email}</span>
-          </div>
+      <div className="co__grid container">
+        <div className="co__main">
+          <form className="co__form" onSubmit={handleSubmit}>
+            <section className="co__step">
+              <h2 className="co__step-title"><span>01</span> Shipping</h2>
 
-          <form className="checkout-form-gucci" onSubmit={handleSubmit}>
-            <div className="checkout-step">
-              <div className="step-header">
-                <span className="step-number">1</span>
-                <h2 className="step-title">SHIPPING</h2>
-              </div>
-
-              <div className="delivery-methods">
-                <label className="radio-label">
-                  <input
-                    type="radio"
-                    value="home"
-                    checked={deliveryMethod === 'home'}
-                    onChange={() => setDeliveryMethod('home')}
-                  />
-                  <span className="radio-custom"></span>
-                  <div className="radio-content">
-                    <span className="radio-title">Home Delivery</span>
-                    <span className="radio-desc">1-3 business days if placed by 1PM EST</span>
-                  </div>
+              <div className="co__radios">
+                <label className="co__radio">
+                  <input type="radio" value="home" checked={deliveryMethod === 'home'} onChange={() => setDeliveryMethod('home')} />
+                  <span>Home delivery<small>1–3 business days</small></span>
                 </label>
-                <label className="radio-label">
-                  <input
-                    type="radio"
-                    value="store"
-                    checked={deliveryMethod === 'store'}
-                    onChange={() => setDeliveryMethod('store')}
-                  />
-                  <span className="radio-custom"></span>
-                  <div className="radio-content">
-                    <span className="radio-title">Collect In-Store</span>
-                    <span className="radio-desc">Next business day if placed by 4 PM EST <br />(continental U.S.)</span>
-                  </div>
+                <label className="co__radio">
+                  <input type="radio" value="store" checked={deliveryMethod === 'store'} onChange={() => setDeliveryMethod('store')} />
+                  <span>Collect in studio<small>Prishtina</small></span>
                 </label>
               </div>
 
-              <div className="form-fields-gucci">
-                <div className="form-row-gucci">
-                  <div className="form-group-gucci">
-                    <label htmlFor="firstName">FIRST NAME*</label>
-                    <input type="text" id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} required />
-                  </div>
-                  <div className="form-group-gucci">
-                    <label htmlFor="lastName">LAST NAME*</label>
-                    <input type="text" id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} required />
-                  </div>
-                </div>
-
-                <div className="form-group-gucci full-width">
-                  <label htmlFor="address">ADDRESS LINE 1*</label>
-                  <div className="input-with-icon">
-                    <input type="text" id="address" name="address" placeholder="Start typing" value={formData.address} onChange={handleChange} required />
-                    <span className="search-icon">🔍</span>
-                  </div>
-                </div>
-
-                <button type="button" className="link-button">Enter address line 2</button>
-
-                <div className="form-row-gucci three-cols">
-                  <div className="form-group-gucci">
-                    <label htmlFor="city">CITY*</label>
-                    <input type="text" id="city" name="city" value={formData.city} onChange={handleChange} required />
-                  </div>
-                  <div className="form-group-gucci">
-                    <label htmlFor="state">STATE*</label>
-                    <input type="text" id="state" name="state" value={formData.state} onChange={handleChange} required />
-                  </div>
-                  <div className="form-group-gucci">
-                    <label htmlFor="postalCode">ZIP CODE*</label>
-                    <input type="text" id="postalCode" name="postalCode" value={formData.postalCode} onChange={handleChange} required />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="checkout-step">
-              <div className="step-header">
-                <span className="step-number">2</span>
-                <h2 className="step-title">PAYMENT & CONTACT</h2>
-              </div>
-              <div className="form-fields-gucci">
-                <div className="form-row-gucci">
-                  <div className="form-group-gucci">
-                    <label htmlFor="email">EMAIL*</label>
-                    <input type="email" id="email" name="email" value={formData.email} onChange={handleChange} required />
-                  </div>
-                  <div className="form-group-gucci">
-                    <label htmlFor="phone">PHONE*</label>
-                    <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleChange} required />
-                  </div>
-                </div>
-
-                <h3 style={{ fontSize: '0.8rem', marginTop: '1rem', letterSpacing: '1px' }}>PAYMENT METHOD</h3>
-                <div className="delivery-methods" style={{ marginTop: '0.5rem' }}>
-                  <label className="radio-label">
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="card"
-                      checked={formData.paymentMethod === 'card'}
-                      onChange={handleChange}
-                    />
-                    <span className="radio-custom"></span>
-                    <div className="radio-content">
-                      <span className="radio-title">Credit/Debit Card</span>
-                    </div>
+              <div className="co__fields">
+                <div className="co__row">
+                  <label className="co__field">First name*
+                    <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} required />
                   </label>
-                  <label className="radio-label">
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="cash"
-                      checked={formData.paymentMethod === 'cash'}
-                      onChange={handleChange}
-                    />
-                    <span className="radio-custom"></span>
-                    <div className="radio-content">
-                      <span className="radio-title">Cash on Delivery</span>
-                    </div>
+                  <label className="co__field">Last name*
+                    <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} required />
+                  </label>
+                </div>
+                <label className="co__field">Address*
+                  <input type="text" name="address" placeholder="Street and number" value={formData.address} onChange={handleChange} required />
+                </label>
+                <label className="co__field">Country*
+                  <select name="country" value={formData.country} onChange={handleChange} required>
+                    {SHIPPING_COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
+                  </select>
+                </label>
+                <div className="co__row co__row--3">
+                  <label className="co__field">City*
+                    <input type="text" name="city" value={formData.city} onChange={handleChange} required />
+                  </label>
+                  <label className="co__field">State / region
+                    <input type="text" name="state" value={formData.state} onChange={handleChange} />
+                  </label>
+                  <label className="co__field">Postal code*
+                    <input type="text" name="postalCode" value={formData.postalCode} onChange={handleChange} required />
                   </label>
                 </div>
               </div>
-            </div>
+            </section>
 
-            <button type="submit" className="submit-button-gucci" disabled={isSubmitting}>
-              {isSubmitting ? 'PROCESSING...' : `PLACE ORDER - €${grandTotal.toFixed(2)}`}
+            <section className="co__step">
+              <h2 className="co__step-title"><span>02</span> Payment &amp; contact</h2>
+              <div className="co__fields">
+                <div className="co__row">
+                  <label className="co__field">Email*
+                    <input type="email" name="email" value={formData.email} onChange={handleChange} required />
+                  </label>
+                  <label className="co__field">Phone*
+                    <input type="tel" name="phone" value={formData.phone} onChange={handleChange} required />
+                  </label>
+                </div>
+
+                <p className="u-fine" style={{ marginTop: '0.5rem' }}>Payment method</p>
+                <div className="co__radios co__radios--stack">
+                  <label className="co__radio">
+                    <input type="radio" name="paymentMethod" value={PAYMENT_METHODS.BANK_TRANSFER} checked={formData.paymentMethod === PAYMENT_METHODS.BANK_TRANSFER} onChange={handleChange} />
+                    <span>Bank transfer<small>IBAN details shown after you place the order</small></span>
+                  </label>
+                  <label className="co__radio">
+                    <input type="radio" name="paymentMethod" value={PAYMENT_METHODS.CASH_ON_DELIVERY} checked={formData.paymentMethod === PAYMENT_METHODS.CASH_ON_DELIVERY} onChange={handleChange} />
+                    <span>Cash on delivery<small>Pay the courier on arrival</small></span>
+                  </label>
+                  <label className="co__radio">
+                    <input type="radio" name="paymentMethod" value={PAYMENT_METHODS.CARD_TEB} checked={formData.paymentMethod === PAYMENT_METHODS.CARD_TEB} onChange={handleChange} />
+                    <span>Card (online)<small>Secure card payment — coming soon</small></span>
+                  </label>
+                </div>
+              </div>
+            </section>
+
+            {error && <div className="co__error" role="alert">{error}</div>}
+
+            <button type="submit" className="btn btn--block" disabled={isSubmitting}>
+              {isSubmitting ? 'Processing…' : `Place order — ${money(Math.round(grandTotalEst * 100))} (est.)`}
             </button>
           </form>
         </div>
 
-        <div className="checkout-right">
-          <div className="order-summary-gucci">
-            <h2 className="summary-title-gucci">ORDER SUMMARY</h2>
-            <p className="summary-subtitle-gucci">👜 {cartItems.length} ITEM{cartItems.length !== 1 && 'S'}</p>
-
-            <div className="summary-items-gucci">
-              {cartItems.map((item, index) => (
-                <div key={`${item.id}-${item.size}-${index}`} className="summary-item-gucci">
-                  <div className="item-image-gucci">
-                    {item.images && item.images[0] ? (
-                      <img src={item.images[0]} alt={item.name} />
-                    ) : (
-                      <div className="placeholder-img" />
-                    )}
-                  </div>
-                  <div className="item-details-gucci">
-                    <div className="item-header-gucci">
-                      <span className="item-name-gucci">{item.name}</span>
-                      <span className="item-qty-gucci">QTY: {item.quantity}</span>
-                    </div>
-                    <span className="item-style-gucci">Style #{item.id}9653</span>
-                    <span className="item-variation-gucci">Variation: Size {item.size}</span>
-                    <div className="item-price-gucci">
-                      <span className="delivery-note">Enjoy complimentary<br />delivery or Collect In Store.</span>
-                      <span className="price-val">€{(item.price * item.quantity).toFixed(2)}</span>
-                    </div>
-                  </div>
+        <aside className="co__summary">
+          <h2 className="u-fine">Order summary · {cartItems.length} {cartItems.length === 1 ? 'item' : 'items'}</h2>
+          <ul className="co__sum-items">
+            {cartItems.map((item, index) => (
+              <li key={`${item.id}-${item.size}-${index}`}>
+                <div className="co__sum-thumb">
+                  {item.images?.[0] ? <Img src={item.images[0]} alt={item.name} sizes="54px" fill /> : <span />}
                 </div>
-              ))}
-            </div>
-
-            <div className="summary-totals-gucci">
-              <div className="total-row-gucci">
-                <span>Subtotal</span>
-                <span>€{getCartTotal().toFixed(2)}</span>
-              </div>
-              <div className="total-row-gucci">
-                <span>Shipping {isKosovo ? '(Kosovo Post)' : isAlbania ? '(Albania Post)' : ''}</span>
-                <span>{shippingCost > 0 ? `€${shippingCost.toFixed(2)}` : 'Free'}</span>
-              </div>
-              <div className="total-row-gucci grand-total">
-                <span>ESTIMATED TOTAL</span>
-                <span>€{grandTotal.toFixed(2)}</span>
-              </div>
-            </div>
-
-            <button
-              className="view-details-gucci"
-              onClick={(e) => { e.preventDefault(); setIsViewDetailsOpen(!isViewDetailsOpen); }}
-            >
-              <span>VIEW DETAILS</span>
-              <span>{isViewDetailsOpen ? '—' : '+'}</span>
-            </button>
-
-            {isViewDetailsOpen && (
-              <>
-                <p className="summary-disclaimer">
-                  You will be charged at the time of shipment. If this is a personalized or made-to-order purchase, you will be charged at the time of purchase.
-                </p>
-                <div className="in-stock-note" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                  <span>In Stock</span>
-                  <span>€{getCartTotal().toFixed(2)}</span>
+                <div className="co__sum-info">
+                  <span className="co__sum-name">{item.name}</span>
+                  <span className="u-fine u-muted">Qty {item.quantity}{item.size ? ` · EU ${item.size}` : ''}</span>
                 </div>
-              </>
-            )}
+                <span className="co__sum-price">€{(item.price * item.quantity).toFixed(2)}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="co__sum-totals">
+            <div><span>Subtotal</span><span>€{subtotalEst.toFixed(2)}</span></div>
+            <div><span>Shipping ({countryLabel})</span><span>{shippingEstCents > 0 ? money(shippingEstCents) : 'Free'}</span></div>
+            <div className="co__sum-grand"><span>Estimated total</span><span>€{grandTotalEst.toFixed(2)}</span></div>
           </div>
-        </div>
+          <p className="u-fine u-muted" style={{ marginTop: '0.75rem', lineHeight: 1.7 }}>
+            This is an estimate. BUKUR calculates and confirms the final total when your order is placed.
+          </p>
+        </aside>
       </div>
     </div>
   );

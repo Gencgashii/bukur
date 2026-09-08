@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { MEDUSA_URL } from '../config';
+import React, { createContext, useContext } from 'react';
+import { API_URL } from '../config';
 
 const OrdersContext = createContext();
 
@@ -11,106 +11,58 @@ export const useOrders = () => {
   return context;
 };
 
-const getInitialOrders = () => {
-  const saved = localStorage.getItem('bukur-orders');
-  if (!saved) return [];
-  try {
-    const parsed = JSON.parse(saved);
-    if (Array.isArray(parsed)) {
-      return parsed;
-    }
-  } catch (e) {
-    // ignore and fall through
-  }
-  return [];
-};
+const ordersApi = `${API_URL.replace(/\/$/, '')}/store/custom/orders`;
 
+/**
+ * Order creation.
+ *
+ * There is NO local/offline "fake success" fallback. If the backend does not
+ * confirm the order, this throws and the checkout UI must show a failure state
+ * and keep the customer's cart. The frontend never decides an order or a
+ * payment succeeded.
+ */
 export const OrdersProvider = ({ children }) => {
-  const [orders, setOrders] = useState(getInitialOrders);
-  const ordersApi = `${MEDUSA_URL.replace(/\/$/, '')}/store/custom/orders`;
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await fetch(ordersApi);
-        if (!res.ok) return;
-        const data = await res.json();
-        setOrders(data);
-      } catch (e) {
-        console.error('Failed to load orders from server', e);
-      }
-    };
-
-    load();
-  }, []);
-
-  const addOrder = async (orderData) => {
+  const addOrder = async (orderData, { idempotencyKey } = {}) => {
+    let response;
     try {
-      const res = await fetch(ordersApi, {
+      response = await fetch(ordersApi, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
+        },
         body: JSON.stringify(orderData),
       });
-      if (res.ok) {
-        const created = await res.json();
-        setOrders((prev) => [created, ...prev]);
-        return created;
-      }
-    } catch (e) {
-      console.warn('Backend server unreachable, saving order locally:', e);
+    } catch (networkError) {
+      const err = new Error('We could not reach the store to place your order. Please try again.');
+      err.cause = networkError;
+      throw err;
     }
 
-    // Local Fallback order creation if backend server is not running
-    const localOrder = {
-      id: `#${Math.floor(1000 + Math.random() * 9000)}`,
-      createdAt: new Date().toISOString(),
-      emailSent: false,
-      ...orderData,
-    };
-
-    setOrders((prev) => {
-      const updated = [localOrder, ...prev];
-      localStorage.setItem('bukur-orders', JSON.stringify(updated));
-      return updated;
-    });
-
-    return localOrder;
-  };
-
-  const updateOrder = async (id, updates) => {
+    let payload = null;
     try {
-      const number = typeof id === 'string' && id.startsWith('#') ? id.slice(1) : id;
-      const res = await fetch(`${ordersApi}/${number}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
-      });
-      if (res.ok) {
-        const updated = await res.json();
-        setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
-        return updated;
-      }
-    } catch (e) {
-      console.warn('Backend server unreachable, updating order locally:', e);
+      payload = await response.json();
+    } catch (_parseError) {
+      payload = null;
     }
 
-    setOrders((prev) => {
-      const updated = prev.map((o) => (o.id === id ? { ...o, ...updates } : o));
-      localStorage.setItem('bukur-orders', JSON.stringify(updated));
-      return updated;
-    });
+    if (!response.ok) {
+      const message =
+        payload?.error?.message ||
+        payload?.message ||
+        'Your order could not be placed. Please review your details and try again.';
+      const err = new Error(message);
+      err.code = payload?.error?.code;
+      err.status = response.status;
+      throw err;
+    }
+
+    return payload;
   };
 
   return (
-    <OrdersContext.Provider
-      value={{
-        orders,
-        addOrder,
-        updateOrder,
-      }}
-    >
+    <OrdersContext.Provider value={{ addOrder }}>
       {children}
     </OrdersContext.Provider>
   );
 };
-

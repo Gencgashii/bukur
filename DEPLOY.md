@@ -1,9 +1,145 @@
+> ## ⚠️ ARKITEKTURA AKTIVE / ACTIVE ARCHITECTURE
+>
+> Për publikimin e shtatorit 2026, backend-i aktiv është **Express + PostgreSQL
+> (`server/`)** — jo Medusa.
+>
+> - Frontend: React (Create React App), build statik i `build/`
+> - Backend: `server/` (Express), `npm run server`, health check `GET /health`
+> - Database: PostgreSQL (`server/schema.sql`)
+> - Konfigurimi i deployment-it: shih `render.yaml` dhe `README.md`
+>
+> `my-medusa-store/` **NUK** është backend-i aktiv. Hapat më poshtë që përmendin
+> Medusa mbahen vetëm si referencë për një fazë të mëvonshme dhe nuk kërkohen
+> për këtë publikim. Shih `my-medusa-store/NOTE.md`.
+>
+> For the September 2026 launch the active backend is **Express + PostgreSQL
+> (`server/`)**, not Medusa. The Medusa-specific steps below are kept for
+> reference only. The authoritative guide is `README.md`.
+
+---
+
+## Media storage (admin uploads) — REQUIRED in production
+
+Admin-uploaded product images must go to durable object storage. Render's disk
+is ephemeral, so `STORAGE_DRIVER=local` loses every upload on redeploy.
+
+On the Render API service set:
+
+| Variable | Required | Notes |
+|---|---|---|
+| `STORAGE_DRIVER` | yes | `s3` |
+| `S3_BUCKET` | yes | bucket name |
+| `S3_REGION` | yes | AWS region, or `auto` for Cloudflare R2 |
+| `S3_ACCESS_KEY_ID` | yes | **secret** |
+| `S3_SECRET_ACCESS_KEY` | yes | **secret** |
+| `S3_PUBLIC_BASE_URL` | yes | public read base, no trailing slash — final URL is `<base>/products/<uuid>.<ext>` |
+| `S3_ENDPOINT` | no | only for non-AWS S3 providers (e.g. `https://<acct>.r2.cloudflarestorage.com`) |
+| `S3_FORCE_PATH_STYLE` | no | `true`/`false`; defaults to `true` when `S3_ENDPOINT` is set |
+
+Bucket permissions for the API key: **`s3:PutObject` + `s3:DeleteObject` on
+`<bucket>/products/*` only** — no list, no admin. Make objects under
+`products/` publicly readable (bucket policy / R2 public bucket or custom
+domain) so the storefront can load them.
+
+If `STORAGE_DRIVER=s3` is set but any required `S3_*` var is missing, the API
+**refuses to boot** (fail-closed) — it never falls back to local disk.
+
+Static storefront photography (`public/media/*`) ships with the build and is
+unaffected by this.
+
+---
+
+## Order confirmation email — production configuration
+
+Sent server-side after each order. Off by default. On the Render API service:
+
+| Variable | Required | Notes |
+|---|---|---|
+| `EMAIL_ENABLED` | yes | `true` |
+| `EMAIL_PROVIDER` | yes | `resend` (in production `console`/`memory` are rejected at boot) |
+| `EMAIL_FROM` | yes | `BUKUR WORLD <orders@your-verified-domain.com>` — the domain must be verified (SPF/DKIM) in the Resend dashboard |
+| `RESEND_API_KEY` | yes | **secret** |
+| `EMAIL_REPLY_TO` | no | e.g. `support@your-domain.com` |
+| `EMAIL_STORE_URL` | no | absolute `https://…` base for links in the email |
+
+If `EMAIL_ENABLED=true` and `EMAIL_FROM` or `RESEND_API_KEY` is missing, the API
+**refuses to boot** (fail-closed). A mail failure never rolls back an order —
+the customer still gets their confirmation page; failed emails are retryable
+from the admin order view. No email credential is ever exposed to the browser.
+
+Local development: leave `EMAIL_ENABLED=false`, or set `EMAIL_PROVIDER=console`
+to write previews to `.mail-preview/` without sending.
+
+---
+
+## Production configuration
+
+Full env-var matrix + domain/HTTPS/CORS/cookie matrix + post-deploy smoke test:
+**`docs/PRODUCTION-CHECKLIST.md`**.
+
+Before deploying, set the API environment on Render and run:
+
+```bash
+npm run production:check -- --strict
+```
+
+It reports every variable (name / scope / secret / status), validates URL
+formats, and **fails closed** on dangerous combinations (weak/short `JWT_SECRET`,
+missing `CLIENT_ORIGINS`, wildcard CORS, `STORAGE_DRIVER=local` in production,
+`s3` without credentials, email enabled without `RESEND_API_KEY`, `console` email
+in production, non-https `REACT_APP_API_URL`, …). It never prints secret values.
+
+Key decisions that are NOT in the repo and must be made in the dashboards:
+
+- **`ADMIN_COOKIE_SAMESITE`** — must be `none` if the storefront/admin and the
+  API are on different registrable domains (the default Vercel + Render split),
+  otherwise admin login silently fails. See `docs/PRODUCTION-CHECKLIST.md` §3.
+- **Object storage** — bucket + public read for `products/*` + a scoped
+  `PutObject`/`DeleteObject` key + `S3_PUBLIC_BASE_URL` (`docs` §4).
+- **Resend** — API key + a verified sender domain (SPF/DKIM).
+- **DNS/HTTPS** for the storefront, API and media domains.
+
+---
+
+## Database backup & recovery
+
+Full runbook: **`docs/DATABASE-RECOVERY.md`**. In short:
+
+- Render Managed PostgreSQL takes automated backups — **check the retention
+  window for your plan tier in the Render dashboard** and confirm it is enabled.
+- In addition, run the repo's provider-independent logical backup on a schedule
+  from an ops context (cron / CI / provider scheduled job — **never** an in-app
+  timer):
+
+  ```bash
+  DATABASE_URL='postgres://…' npm run db:backup            # -> backups/bukur-db-<UTC>.dump (+ .sha256)
+  ```
+
+  Copy each dump **outside** the Render container (separate from the Phase 5B
+  media bucket; never public). Suggested retention: 7 daily / 4 weekly / 3
+  monthly.
+- Never restore over production. Restore into a clean database, verify, repoint:
+
+  ```bash
+  npm run db:verify-restore -- backups/bukur-db-<UTC>.dump   # disposable DB, full integrity check
+  pg_restore --no-owner --no-privileges --exit-on-error -d "$CLEAN_TARGET_URL" backups/bukur-db-<UTC>.dump
+  ```
+
+- `backups/`, `*.dump`, `*.sql` exports are git-ignored and must not be served
+  by Express, Vercel, or the admin dashboard.
+
+---
+
 # BUKUR WORLD — Faza 1: Publikimi i Website-it
 
 Ky udhëzues të çon nga projekti lokal te një website **live** me:
 - ✅ Transfer bankar
 - ✅ Pagesë në dorëzim
 - ✅ Porosi reale + email konfirmimi
+
+> **Shënim:** seksionet për Medusa/Render/Resend më poshtë i referohen një
+> setup-i alternativ me Medusa. Për setup-in aktual (React + Express +
+> PostgreSQL) ndiq `README.md` → "Deployment overview".
 
 ---
 

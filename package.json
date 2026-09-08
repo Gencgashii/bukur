@@ -6,6 +6,16 @@
   "dependencies": {
     "@react-three/drei": "^9.122.0",
     "@react-three/fiber": "^8.18.0",
+    "aws4fetch": "1.0.20",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^7.5.1",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.3.0",
+    "pg": "^8.23.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.20.0",
@@ -15,10 +25,22 @@
   "scripts": {
     "start": "react-scripts start",
     "dev": "react-scripts start",
+    "prebuild": "node scripts/check-frontend-env.js",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "server": "node server/index.js"
+    "server": "node server/index.js",
+    "create-admin": "node server/create-admin.js",
+    "media:optimize": "node scripts/optimize-media.js",
+    "media:verify": "node scripts/verify-media.js",
+    "media:reindex": "node scripts/reindex-product-media.js",
+    "db:backup": "node scripts/backup-db.js",
+    "db:verify-restore": "node scripts/verify-restore.js",
+    "production:check": "node scripts/production-check.js",
+    "test:server": "node --test server/tests/pricing.test.js server/tests/security.test.js server/tests/admin.test.js server/tests/storage.test.js server/tests/email.test.js"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "eslintConfig": {
     "extends": [
@@ -36,5 +58,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "sharp": "^0.33.5"
   }
 }

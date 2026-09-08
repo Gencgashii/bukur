@@ -1,0 +1,76 @@
+.gal__stack { display: grid; gap: 0.5rem; }
+.gal__frame {
+  display: block;
+  position: relative; /* containing block for the .img--fill child */
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: var(--cream);
+  cursor: zoom-in;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+}
+.gal__frame img { width: 100%; height: 100%; object-fit: cover; }
+.gal__frame .img { position: absolute; inset: 0; }
+
+.gal__carousel { display: none; }
+.gal__track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.gal__track::-webkit-scrollbar { display: none; }
+.gal__slide { position: relative; flex: 0 0 100%; scroll-snap-align: start; aspect-ratio: 4 / 5; background: var(--cream); }
+.gal__slide img { width: 100%; height: 100%; object-fit: cover; }
+.gal__slide .img { position: absolute; inset: 0; }
+.gal__dots { display: flex; gap: 0.4rem; justify-content: center; margin-top: 0.9rem; }
+.gal__dot { width: 5px; height: 5px; border-radius: 999px; background: var(--line); }
+.gal__dot.is-on { background: var(--ink); }
+.gal--empty { aspect-ratio: 4 / 5; background: var(--cream); }
+
+/* lightbox */
+.gal-lb {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(14, 12, 11, 0.94);
+  display: grid;
+  place-items: center;
+  padding: clamp(1rem, 4vw, 3rem);
+  cursor: zoom-out;
+}
+.gal-lb img { max-width: min(92vw, 1100px); max-height: 86vh; object-fit: contain; cursor: default; }
+.gal-lb__img { background: transparent; max-width: min(92vw, 1100px); max-height: 86vh; }
+.gal-lb__img .img__el { max-width: min(92vw, 1100px); max-height: 86vh; width: auto; height: auto; object-fit: contain; }
+.gal-lb__close {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.5rem;
+  background: none;
+  border: 0;
+  color: var(--on-dark);
+  font-size: 0.66rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.gal-lb__nav {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  color: var(--on-dark);
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+}
+.gal-lb__nav button { background: none; border: 0; color: var(--on-dark); font-size: 1.4rem; line-height: 1; cursor: pointer; }
+
+@media (max-width: 900px) {
+  .gal__stack { display: none; }
+  .gal__carousel { display: block; }
+}

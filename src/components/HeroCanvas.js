@@ -64,7 +64,7 @@ const HeroCanvas = () => {
             anchorX="left"
             anchorY="middle"
           >
-            ILLYRIAN
+            BUKUR
           </Text>
           <Text
             position={[-4, 0.8, -2]}
@@ -77,7 +77,7 @@ const HeroCanvas = () => {
             anchorX="left"
             anchorY="middle"
           >
-            BLOODLINE
+            WORLD
           </Text>
         </React.Suspense>
 

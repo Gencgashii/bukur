@@ -1,231 +1,171 @@
-import React, { useState } from 'react';
-import { createPortal } from 'react-dom';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useMemo, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useProducts } from '../context/ProductsContext';
+import usePageMeta from '../hooks/usePageMeta';
+import ProductGallery from '../components/ProductGallery';
+import ProductGrid from '../components/ProductGrid';
 import './ProductDetail.css';
+
+const eur = (n) => `€${Number(n || 0).toLocaleString('en-IE', { maximumFractionDigits: 0 })}`;
+
+const Accordion = ({ title, children, defaultOpen = false }) => {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className={`pd-acc ${open ? 'is-open' : ''}`}>
+      <button className="pd-acc__head" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
+        <span>{title}</span>
+        <span className="pd-acc__sign" aria-hidden="true">{open ? '–' : '+'}</span>
+      </button>
+      {open && <div className="pd-acc__body">{children}</div>}
+    </div>
+  );
+};
 
 const ProductDetail = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
+  const { products, loading } = useProducts();
   const { addToCart } = useCart();
-  const { products } = useProducts();
-  const [selectedSize, setSelectedSize] = useState('');
-  const [selectedImage, setSelectedImage] = useState(0);
-  const [quantity, setQuantity] = useState(1);
-  const [showNotification, setShowNotification] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [zoomStyle, setZoomStyle] = useState({ transformOrigin: 'center center', transform: 'scale(1)' });
 
-  const product = products.find(p => p.id === parseInt(id, 10));
+  const product = useMemo(
+    () => products.find((p) => String(p.id) === String(id)),
+    [products, id]
+  );
 
-  if (!product) {
+  const [size, setSize] = useState('');
+  const [qty, setQty] = useState(1);
+  const [sizeError, setSizeError] = useState(false);
+  const [added, setAdded] = useState(false);
+
+  usePageMeta(product ? product.name : 'Product', product ? product.description : undefined);
+
+  if (loading && !products.length) {
     return (
-      <div className="product-detail">
-        <div className="container">
-          <p>Product not found.</p>
+      <div className="pd">
+        <div className="pd__grid container">
+          <div className="skeleton" style={{ aspectRatio: '4 / 5' }} />
+          <div className="pd__info"><div className="skeleton" style={{ height: 260 }} /></div>
         </div>
       </div>
     );
   }
 
-  const handleAddToCart = () => {
-    if (!selectedSize) {
-      alert('Please select a size');
-      return;
-    }
+  if (!product) {
+    return (
+      <div className="state">
+        <p className="u-eyebrow">Not found</p>
+        <h1 className="u-title">This style has slipped away</h1>
+        <p className="u-lede" style={{ marginInline: 'auto', textAlign: 'center' }}>
+          It may have sold out or moved. Explore the rest of the collection.
+        </p>
+        <Link to="/products" className="btn btn--ghost btn--sm" style={{ justifySelf: 'center' }}>
+          Back to the collection
+        </Link>
+      </div>
+    );
+  }
 
-    addToCart(product, selectedSize, quantity);
-    setShowNotification(true);
-    setTimeout(() => setShowNotification(false), 3000);
+  const sizes = Array.isArray(product.sizes) ? product.sizes.map(String) : [];
+  const needsSize = sizes.length > 0;
+  const soldOut = product.inStock === false;
+
+  const handleAdd = () => {
+    if (needsSize && !size) { setSizeError(true); return; }
+    setSizeError(false);
+    addToCart(product, needsSize ? size : '', qty);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 3500);
   };
 
-  const handlePrevImage = (e) => {
-    if (e) e.stopPropagation();
-    setSelectedImage((prev) => (prev === 0 ? product.images.length - 1 : prev - 1));
-  };
-
-  const handleNextImage = (e) => {
-    if (e) e.stopPropagation();
-    setSelectedImage((prev) => (prev === product.images.length - 1 ? 0 : prev + 1));
-  };
-
-  const handleMouseMove = (e) => {
-    // Make sure we're getting the coordinates of the image itself
-    const img = e.currentTarget.querySelector('img');
-    if (!img) return;
-
-    const { left, top, width, height } = img.getBoundingClientRect();
-    // Calculate mouse position relative to image
-    let x = ((e.clientX - left) / width) * 100;
-    let y = ((e.clientY - top) / height) * 100;
-
-    // Clamp to boundaries
-    x = Math.max(0, Math.min(100, x));
-    y = Math.max(0, Math.min(100, y));
-
-    setZoomStyle({
-      transformOrigin: `${x}% ${y}%`,
-      transform: 'scale(2.5)' // Zoom amount
-    });
-  };
-
-  const handleMouseLeave = () => {
-    setZoomStyle({
-      transformOrigin: 'center center',
-      transform: 'scale(1)'
-    });
-  };
-
-  // Ensure we have a valid array of images
-  const productImages = product.images && product.images.length > 0 ? product.images : [product.image];
+  const related = products.filter((p) => p.id !== product.id).slice(0, 3);
 
   return (
-    <>
-      <div className="product-detail">
-        <div className="container">
-          <button className="back-button" onClick={() => navigate(-1)}>
-            ← Back
-          </button>
+    <div className="pd">
+      <div className="pd__grid container">
+        <div className="pd__gallery">
+          <ProductGallery images={product.images} alt={product.name} />
+        </div>
 
-          <div className="product-detail-content">
-            <div className="product-images">
-              <div
-                className="main-image"
-                onClick={() => setIsModalOpen(true)}
-                title="Click to view full screen"
-              >
-                <img src={productImages[selectedImage]} alt={product.name} />
-              </div>
-              {productImages.length > 1 && (
-                <div className="image-thumbnails">
-                  {productImages.map((img, index) => (
+        <div className="pd__info">
+          <div className="pd__sticky">
+            <Link to="/products" className="pd__back">← The Collection</Link>
+            <p className="u-eyebrow" style={{ marginTop: '1.25rem' }}>{product.category}</p>
+            <h1 className="pd__name">{product.name}</h1>
+            <p className="pd__price">{eur(product.price)}</p>
+            {product.description && <p className="pd__desc">{product.description}</p>}
+
+            {needsSize ? (
+              <div className="pd__sizes">
+                <div className="pd__sizes-head">
+                  <span className="u-fine">Size (EU)</span>
+                  <span className="u-fine u-muted">{soldOut ? 'Sold out' : 'In stock'}</span>
+                </div>
+                <div className="pd__size-row">
+                  {sizes.map((s) => (
                     <button
-                      key={index}
-                      className={`thumbnail ${selectedImage === index ? 'active' : ''}`}
-                      onClick={() => setSelectedImage(index)}
+                      key={s}
+                      className={`pd__size ${size === s ? 'is-on' : ''}`}
+                      onClick={() => { setSize(s); setSizeError(false); }}
+                      aria-pressed={size === s}
+                      disabled={soldOut}
                     >
-                      <img src={img} alt={`${product.name} ${index + 1}`} />
+                      {s}
                     </button>
                   ))}
                 </div>
-              )}
+                <p className="pd__size-note" aria-live="polite">
+                  {sizeError ? 'Please choose a size to continue.' : size ? `Selected: EU ${size}` : 'Select your size'}
+                </p>
+              </div>
+            ) : (
+              <p className="pd__size-note" style={{ marginTop: '1.75rem' }}>Sizes for this style will be available shortly.</p>
+            )}
+
+            <div className="pd__buy">
+              <div className="pd__qty" aria-label="Quantity">
+                <button onClick={() => setQty((q) => Math.max(1, q - 1))} aria-label="Decrease quantity">−</button>
+                <span>{qty}</span>
+                <button onClick={() => setQty((q) => Math.min(10, q + 1))} aria-label="Increase quantity">+</button>
+              </div>
+              <button className="btn btn--block" onClick={handleAdd} disabled={soldOut}>
+                {soldOut ? 'Sold out' : 'Add to bag'}
+              </button>
             </div>
 
-            <div className="product-info-detail">
-              <h1 className="product-title">{product.name}</h1>
-              <p className="product-category-detail">{product.category}</p>
-              <p className="product-price-detail">€{product.price.toFixed(2)}</p>
+            {added && (
+              <p className="pd__added" role="status">
+                Added to your bag. <Link to="/cart" className="link-underline">View bag</Link>
+              </p>
+            )}
 
-              <p className="product-description">{product.description}</p>
-
-              <div className="product-options">
-                <div className="size-selector">
-                  <label className="option-label">Size</label>
-                  <div className="size-buttons">
-                    {product.sizes.map(size => (
-                      <button
-                        key={size}
-                        className={`size-button ${selectedSize === size ? 'selected' : ''}`}
-                        onClick={() => setSelectedSize(size)}
-                        aria-pressed={selectedSize === size}
-                      >
-                        <span>{size}</span>
-                        {selectedSize === size && <span className="selected-size-check" aria-hidden="true">✓</span>}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="size-selection-status" aria-live="polite">
-                    {selectedSize ? `Selected size: ${selectedSize}` : 'Select your size to continue'}
-                  </p>
-                </div>
-
-                <div className="quantity-selector">
-                  <label className="option-label">Quantity</label>
-                  <div className="quantity-controls">
-                    <button
-                      className="quantity-button"
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    >
-                      −
-                    </button>
-                    <span className="quantity-value">{quantity}</span>
-                    <button
-                      className="quantity-button"
-                      onClick={() => setQuantity(quantity + 1)}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                className="add-to-cart-button"
-                onClick={handleAddToCart}
-                disabled={!product.inStock}
-              >
-                {product.inStock ? 'Add to Cart' : 'Out of Stock'}
-              </button>
-
-              {showNotification && (
-                <div className="notification">
-                  Added to cart!
-                </div>
-              )}
+            <div className="pd__accs">
+              <Accordion title="Details" defaultOpen>
+                <p>{product.description}</p>
+                {product.sku && <p className="u-fine" style={{ marginTop: '0.75rem' }}>Style {product.sku}</p>}
+              </Accordion>
+              <Accordion title="Sizing &amp; fit">
+                <p>BUKUR heels run true to size. If you are between sizes, we recommend taking the smaller size. The ankle strap is adjustable.</p>
+              </Accordion>
+              <Accordion title="Shipping &amp; returns">
+                <p>Complimentary delivery across Kosovo and the region. Orders are dispatched in 1–3 business days. Returns accepted within 14 days in original condition.</p>
+              </Accordion>
             </div>
           </div>
         </div>
       </div>
 
-      {isModalOpen && createPortal(
-        <div className="fullscreen-modal" onClick={() => setIsModalOpen(false)}>
-          <button className="close-modal-btn" onClick={() => setIsModalOpen(false)}>✕</button>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div
-              className="zoom-container"
-              onMouseMove={handleMouseMove}
-              onMouseLeave={handleMouseLeave}
-            >
-              <img
-                src={productImages[selectedImage]}
-                alt={product.name}
-                className="modal-main-image"
-                style={zoomStyle}
-              />
+      {related.length > 0 && (
+        <section className="section">
+          <div className="container">
+            <div className="section-head">
+              <h2 className="u-title">You may also like</h2>
+              <Link to="/products" className="link-underline link-quiet">All heels</Link>
             </div>
-            {productImages.length > 1 && (
-              <div className="modal-controls-overlay">
-                <div className="modal-thumbnails">
-                  {productImages.map((img, index) => (
-                    <button
-                      key={index}
-                      className={`modal-thumb ${selectedImage === index ? 'active' : ''}`}
-                      onClick={() => setSelectedImage(index)}
-                      aria-label={`View image ${index + 1}`}
-                    >
-                      <img src={img} alt={`Thumbnail ${index + 1}`} />
-                    </button>
-                  ))}
-                </div>
-
-                <button className="modal-nav-btn prev" onClick={handlePrevImage} aria-label="Previous image">
-                  <svg width="6" height="10" viewBox="0 0 6 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M5 1L1 5L5 9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-                <button className="modal-nav-btn next" onClick={handleNextImage} aria-label="Next image">
-                  <svg width="6" height="10" viewBox="0 0 6 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M1 1L5 5L1 9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-              </div>
-            )}
+            <ProductGrid products={related} cols={3} />
           </div>
-        </div>,
-        document.body
+        </section>
       )}
-    </>
+    </div>
   );
 };
 

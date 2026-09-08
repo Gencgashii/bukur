@@ -1,7 +1,61 @@
-﻿node_modules/
+# Dependencies
+node_modules/
+
+# Production build output
+build/
+dist/
+
+# Environment files (keep .env.example tracked)
 .env
 .env.*
 !.env.example
-dist/
-build/
-.git/
+
+# Runtime-generated uploads (served from disk, never committed)
+public/uploads/
+
+# Local email previews written by the 'console' email transport (dev only)
+.mail-preview/
+
+# Database backups — SENSITIVE (customer + business data). Never commit.
+# Note: server/schema.sql and server/tests/*.sql stay tracked (not matched here).
+backups/
+*.dump
+*.pgdump
+*.dump.gz
+*.sql.gz
+bukur-db-*.sql
+bukur-schema-*.sql
+bukur-data-*.sql
+*.dump.sha256
+*.sql.sha256
+
+# media-src/ is intentionally TRACKED (not ignored):
+#   media-src/*.png       — the 5 current product source renders; regeneration
+#                           input for `npm run media:optimize`
+#   media-src/legacy/     — obsolete/unreferenced assets, kept for provenance
+# Nothing here is served to browsers (outside public/ and src/). If the repo
+# size becomes a concern, move media-src/ to Git LFS or an external bucket —
+# do not simply delete it.
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Test / coverage output
+coverage/
+
+# Medusa build cache (kept in the repo but never its generated output)
+my-medusa-store/.medusa/
+my-medusa-store/dist/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+
+# Local scratch files
+*.local

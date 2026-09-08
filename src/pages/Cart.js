@@ -1,172 +1,94 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useProducts } from '../context/ProductsContext';
+import usePageMeta from '../hooks/usePageMeta';
+import ProductGrid from '../components/ProductGrid';
+import Img from '../components/Img';
 import './Cart.css';
 
+const eur = (n) => `€${Number(n || 0).toLocaleString('en-IE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
 const Cart = () => {
-  const { cartItems, removeFromCart, updateQuantity, getCartTotal, clearCart } = useCart();
+  const { cartItems, removeFromCart, updateQuantity, getCartTotal } = useCart();
   const { products } = useProducts();
   const navigate = useNavigate();
-
-  const [isViewDetailsOpen, setIsViewDetailsOpen] = useState(false);
-  const [shippingDestination, setShippingDestination] = useState('none'); // 'none', 'kosovo', 'albania'
-
-  const shippingCost = shippingDestination === 'kosovo' ? 1.80 : shippingDestination === 'albania' ? 4.80 : 0;
-  const grandTotal = getCartTotal() + shippingCost;
+  usePageMeta('Shopping Bag');
 
   if (cartItems.length === 0) {
     return (
-      <div className="cart-page-gucci empty">
-        <div className="container" style={{ textAlign: 'center', padding: '100px 0' }}>
-          <h1 className="page-title" style={{ fontFamily: '"Bodoni Moda", serif', fontWeight: 400, marginBottom: '2rem' }}>YOUR SHOPPING BAG IS EMPTY</h1>
-          <p style={{ marginBottom: '2rem', color: '#666' }}>Please add items to your cart first.</p>
-          <button className="continue-button-gucci" onClick={() => navigate('/products')}>Continue Shopping</button>
-        </div>
+      <div className="state">
+        <p className="u-eyebrow">Your bag</p>
+        <h1 className="u-title">Your shopping bag is empty</h1>
+        <p className="u-lede" style={{ marginInline: 'auto', textAlign: 'center' }}>
+          Nothing here yet. Discover the collection and find your pair.
+        </p>
+        <Link to="/products" className="btn btn--ghost btn--sm" style={{ justifySelf: 'center' }}>
+          Continue shopping
+        </Link>
       </div>
     );
   }
 
+  const subtotal = getCartTotal();
+
   return (
-    <div className="cart-page-gucci">
-      <div className="cart-container-gucci">
+    <div className="cart">
+      <div className="container">
+        <header className="cart__head">
+          <h1 className="u-display">Shopping bag</h1>
+          <p className="u-fine">{cartItems.length} {cartItems.length === 1 ? 'item' : 'items'}</p>
+        </header>
 
-        <div className="cart-left">
-          <div className="cart-header-gucci">
-            <h2 className="selections-title">YOUR SELECTIONS</h2>
-          </div>
-
-          <div className="cart-items-gucci">
-            {cartItems.map((item, index) => (
-              <div key={`${item.id}-${item.size}-${index}`} className="cart-item-gucci">
-                <div className="item-image-gucci">
-                  <img src={item.image || (item.images && item.images[0])} alt={item.name} />
-                </div>
-
-                <div className="item-details-gucci">
-                  <div className="item-top-row">
-                    <div className="item-info-main">
-                      <h3 className="item-name-gucci">{item.name}</h3>
-                      <p className="item-style-gucci">Style# {item.id} FAFV9 9653</p>
-                      <p className="item-variation-gucci">Variation: Size {item.size}</p>
+        <div className="cart__grid">
+          <ul className="cart__items">
+            {cartItems.map((item, i) => (
+              <li key={`${item.id}-${item.size}-${i}`} className="cart__item">
+                <Link to={`/product/${item.id}`} className="cart__thumb">
+                  <Img src={item.image || item.images?.[0]} alt={item.name} sizes="120px" fill />
+                </Link>
+                <div className="cart__item-main">
+                  <div className="cart__item-top">
+                    <div>
+                      <Link to={`/product/${item.id}`} className="cart__item-name">{item.name}</Link>
+                      {item.category && <p className="u-fine u-muted" style={{ marginTop: '0.4rem' }}>{item.category}</p>}
+                      {item.size && <p className="cart__item-size">Size EU {item.size}</p>}
                     </div>
-
-                    <div className="item-qty-price">
-                      <div className="qty-dropdown">
-                        <span className="qty-label">QTY: </span>
-                        <select
-                          value={item.quantity}
-                          onChange={(e) => updateQuantity(item.id, item.size, parseInt(e.target.value))}
-                          className="qty-select"
-                        >
-                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
-                            <option key={num} value={num}>{num}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="item-price-gucci">
-                        € {(item.price * item.quantity).toFixed(2)}
-                      </div>
+                    <p className="cart__item-price">{eur(item.price * item.quantity)}</p>
+                  </div>
+                  <div className="cart__item-actions">
+                    <div className="cart__qty" aria-label="Quantity">
+                      <button onClick={() => updateQuantity(item.id, item.size, item.quantity - 1)} aria-label="Decrease quantity">−</button>
+                      <span>{item.quantity}</span>
+                      <button onClick={() => updateQuantity(item.id, item.size, item.quantity + 1)} aria-label="Increase quantity">+</button>
                     </div>
-                  </div>
-
-                  <div className="item-availability">
-                    <span className="status-text">AVAILABLE</span>
-                    <p className="delivery-note">Enjoy complimentary delivery or Collect In Store.</p>
-                  </div>
-
-                  <div className="item-actions-gucci">
-                    <button className="action-link" onClick={() => navigate(`/product/${item.id}`)}>EDIT</button>
-                    <button className="action-link" onClick={() => removeFromCart(item.id, item.size)}>REMOVE</button>
-                    <button className="action-link">♡ SAVED ITEMS</button>
+                    <button className="cart__remove" onClick={() => removeFromCart(item.id, item.size)}>Remove</button>
                   </div>
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
-        </div>
+          </ul>
 
-        <div className="cart-right">
-          <div className="order-summary-gucci">
-            <h2 className="summary-title-gucci">ORDER SUMMARY</h2>
-            <p className="summary-id-gucci">USCART{Math.floor(Math.random() * 1000000000)}</p>
-
-            <div className="summary-totals-gucci">
-              <div className="total-row-gucci">
-                <span>Subtotal</span>
-                <span>€ {getCartTotal().toFixed(2)}</span>
-              </div>
-              <div className="total-row-gucci">
-                <span>Shipping</span>
-                <div className="shipping-selector">
-                  <select
-                    className="shipping-dropdown"
-                    value={shippingDestination}
-                    onChange={(e) => setShippingDestination(e.target.value)}
-                  >
-                    <option value="none" disabled>Select Destination</option>
-                    <option value="kosovo">Kosovo Post (€1.80)</option>
-                    <option value="albania">Albania Post (€4.80)</option>
-                  </select>
-                </div>
-              </div>
-              <div className="total-row-gucci grand-total">
-                <span>Estimated Total</span>
-                <span>€ {grandTotal.toFixed(2)}</span>
-              </div>
-            </div>
-
-            <button
-              className="view-details-gucci"
-              onClick={() => setIsViewDetailsOpen(!isViewDetailsOpen)}
-            >
-              <span>VIEW DETAILS</span>
-              <span>{isViewDetailsOpen ? '—' : '+'}</span>
+          <aside className="cart__summary">
+            <h2 className="u-fine">Order summary</h2>
+            <div className="cart__sum-row"><span>Subtotal</span><span>{eur(subtotal)}</span></div>
+            <div className="cart__sum-row"><span>Shipping</span><span className="u-muted">Calculated at checkout</span></div>
+            <div className="cart__sum-row cart__sum-row--total"><span>Estimated total</span><span>{eur(subtotal)}</span></div>
+            <button className="btn btn--block" onClick={() => navigate('/checkout')} style={{ marginTop: '1.5rem' }}>
+              Proceed to checkout
             </button>
-
-            {isViewDetailsOpen && (
-              <>
-                <p className="summary-disclaimer">
-                  You will be charged at the time of shipment. If this is a personalized or made-to-order purchase, you will be charged at the time of purchase.
-                </p>
-
-                <div className="in-stock-note">
-                  <span>In Stock</span>
-                  <span>€ {getCartTotal().toFixed(2)}</span>
-                </div>
-              </>
-            )}
-
-            <button className="submit-button-gucci" onClick={() => navigate('/checkout')}>
-              CHECKOUT
-            </button>
-          </div>
+            <Link to="/products" className="cart__continue link-underline link-quiet">Continue shopping</Link>
+            <p className="cart__note">Complimentary delivery across Kosovo &amp; the region. Final total is confirmed at checkout.</p>
+          </aside>
         </div>
+
+        {products.length > 0 && (
+          <section className="section section--tight">
+            <div className="section-head"><h2 className="u-title">You may also like</h2></div>
+            <ProductGrid products={products.filter((p) => !cartItems.some((c) => c.id === p.id)).slice(0, 3)} cols={3} />
+          </section>
+        )}
       </div>
-
-      {/* Recommendations Carousel */}
-      <div className="recommendations-container-gucci">
-        <h2 className="recommendations-title-gucci">YOU MAY ALSO LIKE</h2>
-
-        <div className="recommendations-grid-gucci">
-          {products.slice(0, 4).map((product) => (
-            <div key={product.id} className="recommendation-card-gucci">
-              <div className="rec-image-wrapper">
-                <button className="wishlist-btn-gucci">♡</button>
-                <img src={product.images && product.images[0] ? product.images[0] : product.image} alt={product.name} />
-              </div>
-              <div className="rec-info-gucci">
-                <h3 className="rec-name-gucci">{product.name}</h3>
-                <p className="rec-price-gucci">€ {product.price.toFixed(2)}</p>
-                <button className="shop-this-btn-gucci" onClick={() => navigate(`/product/${product.id}`)}>
-                  SHOP THIS
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
     </div>
   );
 };

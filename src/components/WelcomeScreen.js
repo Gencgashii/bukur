@@ -2,50 +2,42 @@ import React, { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import './WelcomeScreen.css';
 
+const SEEN_KEY = 'bukur-welcome-seen';
+
+const wasSeen = () => {
+  try { return sessionStorage.getItem(SEEN_KEY) === '1'; } catch { return false; }
+};
+
 const WelcomeScreen = () => {
-    const { setLanguage } = useLanguage();
-    const [isVisible, setIsVisible] = useState(true);
-    const [isFadingOut, setIsFadingOut] = useState(false);
+  const { setLanguage } = useLanguage();
+  const [visible, setVisible] = useState(!wasSeen());
+  const [leaving, setLeaving] = useState(false);
 
-    const handleSelectLanguage = (lang) => {
-        setLanguage(lang);
-        setIsFadingOut(true);
-        setTimeout(() => {
-            setIsVisible(false);
-        }, 800);
-    };
+  const choose = (lang) => {
+    setLanguage(lang);
+    try { sessionStorage.setItem(SEEN_KEY, '1'); } catch { /* ignore */ }
+    setLeaving(true);
+    setTimeout(() => setVisible(false), 700);
+  };
 
-    if (!isVisible) return null;
+  if (!visible) return null;
 
-    return (
-        <div className={`welcome-screen ${isFadingOut ? 'fade-out' : ''}`}>
-            <div className="welcome-grain" aria-hidden="true" />
-            <div className="welcome-rule welcome-rule-top" aria-hidden="true" />
-            <div className="welcome-rule welcome-rule-bottom" aria-hidden="true" />
-            <div className="welcome-content">
-                <p className="welcome-kicker">EST. PRISHTINA</p>
-                <h1 className="welcome-title" aria-label="BUKUR">BUKUR</h1>
-                <p className="welcome-subtitle">TIMELESS PIECES DESIGNED FOR MODERN ELEGANCE</p>
-                <div className="welcome-lang-selector">
-                    <button 
-                        className="welcome-lang-btn" 
-                        onClick={() => handleSelectLanguage('en')}
-                        aria-label="Enter BUKUR in English"
-                    >
-                        ENGLISH
-                    </button>
-                    <span className="welcome-lang-divider">|</span>
-                    <button 
-                        className="welcome-lang-btn" 
-                        onClick={() => handleSelectLanguage('sq')}
-                        aria-label="Hyr në BUKUR në shqip"
-                    >
-                        SHQIP
-                    </button>
-                </div>
-            </div>
+  return (
+    <div className={`welcome ${leaving ? 'is-leaving' : ''}`} role="dialog" aria-label="Choose language">
+      <div className="welcome__rule welcome__rule--top" aria-hidden="true" />
+      <div className="welcome__inner">
+        <p className="u-eyebrow">Est. Prishtina</p>
+        <h1 className="welcome__wordmark">BUKUR WORLD</h1>
+        <p className="welcome__tag">Sculptural heels, made for the entrance</p>
+        <div className="welcome__langs">
+          <button onClick={() => choose('en')} aria-label="Enter in English">English</button>
+          <span aria-hidden="true">/</span>
+          <button onClick={() => choose('sq')} aria-label="Hyr në shqip">Shqip</button>
         </div>
-    );
+      </div>
+      <div className="welcome__rule welcome__rule--bottom" aria-hidden="true" />
+    </div>
+  );
 };
 
 export default WelcomeScreen;

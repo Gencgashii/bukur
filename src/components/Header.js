@@ -1,84 +1,111 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { useLanguage } from '../context/LanguageContext';
 import './Header.css';
 
-const Header = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const { getCartItemsCount } = useCart();
-  const { t } = useLanguage();
+const NAV = [
+  { to: '/products', label: 'Shop', end: false },
+  { to: '/products?sort=new', label: 'New In' },
+  { to: '/products?category=Slingbacks', label: 'Collections' },
+  { to: '/about', label: 'About' },
+];
 
-  const handleCloseMenu = () => setIsMenuOpen(false);
+const Header = () => {
+  const { getCartItemsCount } = useCart();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const overHero = location.pathname === '/';
+
+  const [solid, setSolid] = useState(!overHero);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [term, setTerm] = useState('');
 
   useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 50) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
-    };
+    setSolid(!overHero);
+    if (!overHero) return undefined;
+    const onScroll = () => setSolid(window.scrollY > 60);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [overHero]);
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  useEffect(() => {
+    setMenuOpen(false);
+    setSearchOpen(false);
+  }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    document.body.style.overflow = menuOpen || searchOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [menuOpen, searchOpen]);
+
+  const submitSearch = (e) => {
+    e.preventDefault();
+    const q = term.trim();
+    navigate(q ? `/products?q=${encodeURIComponent(q)}` : '/products');
+    setSearchOpen(false);
+    setTerm('');
+  };
+
+  const count = getCartItemsCount();
 
   return (
-    <header className={`header ${isScrolled ? 'header-scrolled' : ''}`}>
-      <div className="header-container">
-
-        {/* Left Side Navigation */}
-        <nav className="nav-group nav-left">
-          <Link to="/" className="nav-link" onClick={handleCloseMenu}>
-            {t('Home')}
-          </Link>
-          <Link to="/products" className="nav-link" onClick={handleCloseMenu}>
-            {t('Collection')}
-          </Link>
-        </nav>
-
-        {/* Centered Logo */}
-        <div className="logo-container">
-          <Link to="/" className="logo" onClick={handleCloseMenu}>
-            BUKUR
-          </Link>
-        </div>
-
-        {/* Right Side Navigation */}
-        <nav className="nav-group nav-right">
-          <Link to="/cart" className="nav-link cart-link" onClick={handleCloseMenu}>
-            {t('Cart')}
-            {getCartItemsCount() > 0 && (
-              <span className="cart-badge">{getCartItemsCount()}</span>
-            )}
-          </Link>
-
-          <button className="menu-toggle-desktop" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-            {isMenuOpen ? t('CLOSE') : t('MENU')}
+    <header className={`hdr ${solid ? 'is-solid' : ''} ${overHero ? '' : 'is-plain'}`}>
+      <div className="hdr__bar">Complimentary delivery across Kosovo &amp; the region</div>
+      <div className="hdr__inner">
+        <nav className="hdr__nav hdr__nav--left" aria-label="Primary">
+          <button className="hdr__burger" aria-label="Open menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)}>
+            <span /><span /><span />
           </button>
+          {NAV.slice(0, 2).map((n) => (
+            <NavLink key={n.label} to={n.to} className="hdr__link">{n.label}</NavLink>
+          ))}
         </nav>
 
-        {/* Mobile Hamburger (Only visible on small screens) */}
-        <button
-          className="menu-toggle-mobile"
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          aria-label="Toggle menu"
-        >
-          <span className={`hamburger ${isMenuOpen ? 'hamburger-open' : ''}`}>
-            <span></span>
-            <span></span>
-            <span></span>
-          </span>
-        </button>
+        <Link to="/" className="hdr__wordmark" aria-label="BUKUR WORLD home">BUKUR</Link>
 
-        {/* Mobile Flyout Menu */}
-        <div className={`mobile-menu ${isMenuOpen ? 'mobile-menu-open' : ''}`}>
-          <Link to="/" className="nav-link" onClick={handleCloseMenu}>{t('Home')}</Link>
-          <Link to="/products" className="nav-link" onClick={handleCloseMenu}>{t('Collection')}</Link>
-          <Link to="/cart" className="nav-link" onClick={handleCloseMenu}>{t('Cart')}</Link>
+        <nav className="hdr__nav hdr__nav--right" aria-label="Utilities">
+          <button className="hdr__link hdr__search-btn" onClick={() => setSearchOpen(true)} aria-label="Search">Search</button>
+          <Link to="/cart" className="hdr__link hdr__bag" aria-label={`Bag, ${count} item${count === 1 ? '' : 's'}`}>
+            Bag{count > 0 && <span className="hdr__bag-count"><span>{count}</span></span>}
+          </Link>
+        </nav>
+      </div>
+
+      {/* mobile / full nav overlay */}
+      <div className={`overlay ${menuOpen ? 'is-open' : ''}`} aria-hidden={!menuOpen}>
+        <div className="overlay__top">
+          <span className="hdr__wordmark" style={{ color: 'var(--ink)' }}>BUKUR</span>
+          <button className="overlay__close" onClick={() => setMenuOpen(false)}>Close</button>
         </div>
+        <nav className="overlay__nav">
+          {NAV.map((n) => (
+            <Link key={n.label} to={n.to}>{n.label}</Link>
+          ))}
+          <Link to="/cart">Bag{count > 0 ? ` (${count})` : ''}</Link>
+        </nav>
+        <div className="overlay__foot u-fine">
+          <span>Prishtina</span><span>Est. 2026</span>
+        </div>
+      </div>
+
+      {/* search overlay */}
+      <div className={`overlay ${searchOpen ? 'is-open' : ''}`} aria-hidden={!searchOpen}>
+        <div className="overlay__top">
+          <span className="u-fine">Search</span>
+          <button className="overlay__close" onClick={() => setSearchOpen(false)}>Close</button>
+        </div>
+        <form className="overlay__search" onSubmit={submitSearch} style={{ marginTop: 'auto', marginBottom: 'auto' }}>
+          <input
+            autoFocus={searchOpen}
+            value={term}
+            onChange={(e) => setTerm(e.target.value)}
+            placeholder="Search the collection"
+            aria-label="Search the collection"
+          />
+          <button type="submit" className="link-underline">Go</button>
+        </form>
       </div>
     </header>
   );

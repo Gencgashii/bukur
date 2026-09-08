@@ -1,11 +1,21 @@
+# BUKUR WORLD — Render blueprint
+# Production architecture: React (static) + Express API (server/) + PostgreSQL.
+#
+# This does NOT deploy my-medusa-store/. That folder is not the active backend.
+# Deploy nothing automatically — review, set the "sync: false" secrets in the
+# Render dashboard, then apply.
+
 services:
+  # ---------------------------------------------------------------------------
+  # Express + PostgreSQL API  (server/index.js)
+  # ---------------------------------------------------------------------------
   - type: web
-    name: bukur-medusa
+    name: bukur-api
     runtime: node
     plan: starter
-    rootDir: my-medusa-store
-    buildCommand: npm install && npm run build
-    startCommand: npm run start
+    rootDir: .
+    buildCommand: npm install
+    startCommand: npm run server
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
@@ -14,31 +24,110 @@ services:
         fromDatabase:
           name: bukur-db
           property: connectionString
+      # If the API connects to Postgres over the EXTERNAL URL (or any managed
+      # PG that mandates TLS), set this to "true". Not needed for Render's
+      # internal connection string. Verify on first deploy.
+      - key: DATABASE_SSL
+        sync: false
       - key: JWT_SECRET
         generateValue: true
-      - key: COOKIE_SECRET
-        generateValue: true
-      - key: STORE_CORS
+      # REQUIRED: comma-separated allowed browser origin(s), no trailing slash.
+      # Include BOTH the storefront and the admin dashboard origins,
+      # e.g. https://bukurworld.com,https://www.bukurworld.com,https://admin.bukurworld.com
+      - key: CLIENT_ORIGINS
         sync: false
-      - key: ADMIN_CORS
+      # If the admin dashboard is hosted on a DIFFERENT domain than this API,
+      # set this to "none" (cookies are already Secure in production).
+      - key: ADMIN_COOKIE_SAMESITE
+        value: "lax"
+      # Media storage for ADMIN-UPLOADED images only (storefront photography is
+      # a build-time pipeline: public/media/*.{avif,webp,jpg}, served static).
+      #
+      # PRODUCTION MUST NOT use 'local' — Render's disk is ephemeral and admin
+      # uploads would be lost on every redeploy/restart. Set this to "s3" and
+      # provide the S3_* vars below. If "s3" is set with any required S3_* var
+      # missing, the API fails to boot (fail-closed; no silent local fallback).
+      - key: STORAGE_DRIVER
+        value: "s3"
+      # Public read base for stored objects (no trailing slash). e.g.
+      # https://img.bukurworld.com  or  https://<bucket>.s3.<region>.amazonaws.com
+      - key: S3_PUBLIC_BASE_URL
         sync: false
-      - key: AUTH_CORS
+      - key: S3_BUCKET
         sync: false
-      - key: MEDUSA_DEFAULT_REGION_ID
+      - key: S3_REGION
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      # Optional: only for non-AWS S3-compatible providers (Cloudflare R2, MinIO).
+      # e.g. https://<accountid>.r2.cloudflarestorage.com  — omit for AWS S3.
+      - key: S3_ENDPOINT
+        sync: false
+      # Optional: "true"/"false"; defaults to true when S3_ENDPOINT is set.
+      - key: S3_FORCE_PATH_STYLE
+        sync: false
+      # Only used by the 'local' driver (dev). Harmless to leave unset for s3.
+      - key: MEDIA_PUBLIC_BASE_URL
+        sync: false
+      # Shipping rates in cents by ISO-2 country code.
+      - key: SHIPPING_RATES
+        value: "XK:180,AL:480"
+      # Tax in basis points (0 = none). Set only when the business confirms VAT.
+      - key: TAX_RATE_BPS
+        value: "0"
+      - key: ENABLE_COD
+        value: "true"
+      # Online card payments (TEB). Keep "teb"; the mock provider is dev-only
+      # and is force-disabled when NODE_ENV=production regardless.
+      - key: PAYMENTS_CARD_PROVIDER
+        value: "teb"
+      # Transactional order-confirmation email. Sent server-side only.
+      # In production EMAIL_PROVIDER must be "resend" (console/memory are
+      # rejected at boot). If EMAIL_ENABLED=true and EMAIL_FROM or the provider
+      # secret is missing, the API fails to boot (fail-closed).
+      - key: EMAIL_ENABLED
+        value: "true"
+      - key: EMAIL_PROVIDER
+        value: "resend"
+      # "BUKUR WORLD <orders@your-verified-domain.com>" — domain must be
+      # verified (SPF/DKIM) with the provider.
+      - key: EMAIL_FROM
+        sync: false
+      - key: EMAIL_REPLY_TO
+        sync: false
+      # Optional absolute https base for links inside the confirmation email.
+      - key: EMAIL_STORE_URL
         sync: false
       - key: RESEND_API_KEY
         sync: false
-      - key: RESEND_FROM
+      # Leave unset in normal operation. Set to "true" only for the one-off
+      # first-admin bootstrap, then remove.
+      - key: ALLOW_ADMIN_REGISTER
         sync: false
-      - key: BANK_HOLDER
-        sync: false
-      - key: BANK_IBAN
-        sync: false
-      - key: BANK_NAME
-        sync: false
+
+  # ---------------------------------------------------------------------------
+  # The React storefront (+ /admin) is deployed on VERCEL, not Render.
+  # Vercel: framework "Create React App" (auto), build `npm run build`,
+  # output `build/`, SPA rewrite -> /index.html (see vercel.json).
+  # Set these in the Vercel project (Production env):
+  #   REACT_APP_API_URL        = https://<this API service>.onrender.com
+  #   REACT_APP_BANK_HOLDER / _IBAN / _NAME / _SWIFT   (public checkout copy)
+  #   GENERATE_SOURCEMAP=false   DISABLE_ESLINT_PLUGIN=true
+  # `scripts/check-frontend-env.js` (npm prebuild) fails the Vercel build if
+  # REACT_APP_API_URL is missing or points at localhost.
+  # ---------------------------------------------------------------------------
 
 databases:
   - name: bukur-db
     plan: starter
-    databaseName: medusa
-    user: medusa
+    databaseName: bukur
+    user: bukur
+    # BACKUPS: Render Managed PostgreSQL takes automated backups; retention and
+    # point-in-time recovery depend on the plan tier — verify the exact window
+    # in the Render dashboard. In addition, run the repo's provider-independent
+    # logical backup (`npm run db:backup`) on a schedule from an ops context and
+    # copy each dump to storage OUTSIDE this container. Full runbook:
+    # docs/DATABASE-RECOVERY.md. Never restore over this database — restore into
+    # a clean DB, verify with `npm run db:verify-restore`, then repoint.
