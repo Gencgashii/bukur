@@ -1,18 +1,27 @@
 # BUKUR WORLD — Render blueprint
-# Production architecture: React (static) + Express API (server/) + PostgreSQL.
+# Architecture: React storefront/admin on Vercel + Express API (server/) on
+# Render + PostgreSQL.
 #
-# This does NOT deploy my-medusa-store/. That folder is not the active backend.
-# Deploy nothing automatically — review, set the "sync: false" secrets in the
-# Render dashboard, then apply.
+# This blueprint is set up for the FREE smoke-test stage:
+#   - the API runs on Render's FREE web plan (spins down after ~15 min idle;
+#     first request after that cold-starts in ~30-60s)
+#   - PostgreSQL is EXTERNAL (e.g. Neon free tier) — no `databases:` block here.
+#     Paste the connection string into DATABASE_URL and set DATABASE_SSL=true.
+#
+# To go production later: change `plan: free` -> `plan: starter` and (optionally)
+# add back a Render database — see the commented block at the bottom of this file.
+#
+# This does NOT deploy my-medusa-store/. Deploy nothing automatically — review,
+# set the "sync: false" secrets in the Render dashboard, then apply.
 
 services:
   # ---------------------------------------------------------------------------
-  # Express + PostgreSQL API  (server/index.js)
+  # Express API  (server/index.js)
   # ---------------------------------------------------------------------------
   - type: web
     name: bukur-api
     runtime: node
-    plan: starter
+    plan: free
     rootDir: .
     buildCommand: npm install
     startCommand: npm run server
@@ -20,15 +29,14 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      # EXTERNAL PostgreSQL connection string (Neon / Supabase / etc.).
+      # e.g. postgresql://user:pass@ep-xxx.eu-central-1.aws.neon.tech/bukur?sslmode=require
       - key: DATABASE_URL
-        fromDatabase:
-          name: bukur-db
-          property: connectionString
-      # If the API connects to Postgres over the EXTERNAL URL (or any managed
-      # PG that mandates TLS), set this to "true". Not needed for Render's
-      # internal connection string. Verify on first deploy.
-      - key: DATABASE_SSL
         sync: false
+      # Managed Postgres providers (Neon, Supabase, Render external URL, …)
+      # require TLS. Set this to "true". Use "strict" to also verify the cert.
+      - key: DATABASE_SSL
+        value: "true"
       - key: JWT_SECRET
         generateValue: true
       # REQUIRED: comma-separated allowed browser origin(s), no trailing slash.
@@ -119,15 +127,29 @@ services:
   # REACT_APP_API_URL is missing or points at localhost.
   # ---------------------------------------------------------------------------
 
-databases:
-  - name: bukur-db
-    plan: starter
-    databaseName: bukur
-    user: bukur
-    # BACKUPS: Render Managed PostgreSQL takes automated backups; retention and
-    # point-in-time recovery depend on the plan tier — verify the exact window
-    # in the Render dashboard. In addition, run the repo's provider-independent
-    # logical backup (`npm run db:backup`) on a schedule from an ops context and
-    # copy each dump to storage OUTSIDE this container. Full runbook:
-    # docs/DATABASE-RECOVERY.md. Never restore over this database — restore into
-    # a clean DB, verify with `npm run db:verify-restore`, then repoint.
+# ---------------------------------------------------------------------------
+# DATABASE
+#
+# Smoke-test stage: use an EXTERNAL free Postgres (Neon recommended — no card,
+# no 30-day expiry). Create the project, copy the connection string into the
+# API service's DATABASE_URL (sync: false) and keep DATABASE_SSL=true.
+#
+# Production: either keep the external Postgres on a paid tier, or provision a
+# Render Managed database by un-commenting the block below, changing the API
+# service to `plan: starter`, and switching DATABASE_URL back to:
+#     - key: DATABASE_URL
+#       fromDatabase:
+#         name: bukur-db
+#         property: connectionString
+#
+# databases:
+#   - name: bukur-db
+#     plan: starter
+#     databaseName: bukur
+#     user: bukur
+#
+# BACKUPS (either provider): run `npm run db:backup` on a schedule from an ops
+# context and copy each dump to storage OUTSIDE the container. Never restore
+# over the live DB — restore into a clean DB, verify with
+# `npm run db:verify-restore`, then repoint. Full runbook: docs/DATABASE-RECOVERY.md.
+# ---------------------------------------------------------------------------
