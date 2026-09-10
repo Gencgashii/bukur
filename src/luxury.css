@@ -693,8 +693,14 @@ button { font-family: inherit; color: inherit; }
 .campaign::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 42%, rgba(14, 12, 11, 0.62)); }
 .campaign__inner { position: relative; z-index: 2; max-width: var(--container); margin-inline: auto; width: 100%; padding: 0 var(--gutter) clamp(3rem, 8vw, 6rem); display: grid; gap: 1.4rem; justify-items: start; }
 
-/* shop by silhouette */
-.cats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+/* shop by silhouette — a considered gallery row
+   (hairline seams in the page ground + a thin rule top and bottom) */
+.cats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: clamp(2px, 0.4vw, 8px);
+  border-block: 1px solid var(--line);
+}
 .cat {
   position: relative;
   aspect-ratio: 3 / 4;
@@ -705,11 +711,67 @@ button { font-family: inherit; color: inherit; }
   align-items: flex-end;
 }
 .cat img { width: 100%; height: 100%; object-fit: cover; }
-.cat .img { position: absolute; inset: 0; opacity: 0.9; background: var(--ink); transition: transform 1.8s var(--ease), opacity var(--dur-md) var(--ease); }
-.cat::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 52%, rgba(14, 12, 11, 0.55)); }
-.cat:hover .img { transform: scale(1.045); opacity: 0.78; }
-.cat__label { position: relative; z-index: 2; padding: clamp(1.5rem, 3vw, 2.75rem); font-family: var(--serif); font-size: clamp(1.6rem, 3vw, 2.4rem); }
-.cat__label small { display: block; margin-top: 0.5rem; font-family: var(--sans); font-size: 0.58rem; letter-spacing: 0.26em; text-transform: uppercase; opacity: 0.82; }
+.cat .img {
+  position: absolute;
+  inset: 0;
+  opacity: 0.9;
+  background: var(--ink);
+  transition: transform 1.9s var(--ease), opacity var(--dur-md) var(--ease), filter var(--dur-md) var(--ease);
+}
+/* a lighter, later fade so a dark photograph doesn't sink into mud */
+.cat::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 62%, rgba(14, 12, 11, 0.34) 100%);
+}
+/* a hairline frame draws in on hover */
+.cat::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(244, 239, 230, 0);
+  transition: box-shadow var(--dur-md) var(--ease);
+}
+.cat:hover::before { box-shadow: inset 0 0 0 1px rgba(244, 239, 230, 0.16); }
+.cat:hover .img { transform: scale(1.03); opacity: 0.86; filter: brightness(1.05) contrast(1.03); }
+
+.cat__label {
+  position: relative;
+  z-index: 2;
+  padding: clamp(1.5rem, 3vw, 2.75rem);
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  letter-spacing: -0.005em;
+  transition: transform var(--dur-md) var(--ease);
+}
+.cat:hover .cat__label { transform: translateY(-4px); }
+.cat__label small {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 0.6em;
+  margin-top: 0.6rem;
+  font-family: var(--sans);
+  font-size: 0.58rem;
+  font-weight: 500;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+.cat__label small::after {
+  content: '';
+  width: 1.5rem;
+  height: 1px;
+  background: currentColor;
+  transform-origin: left;
+  transform: scaleX(0.5);
+  transition: transform var(--dur-sm) var(--ease);
+}
+.cat:hover .cat__label small::after { transform: scaleX(1); }
 
 /* brand statement */
 .statement { text-align: center; }

@@ -62,11 +62,14 @@ export const homeContent = {
     align: 'left',
   },
 
+  // Mood edits, not silhouette types. Each name must match a category created
+  // in the admin (Categories) and assigned to products for the tile link to
+  // filter the collection. Images live at /media/<slug>.jpg.
   categories: [
-    { name: 'Slingbacks', image: '/media/bow-slingback-trio.jpg' },
-    { name: 'Pumps', image: '/media/lookbook-daylight.jpg' },
-    { name: 'Statement', image: '/media/veil-mesh-trio.jpg' },
-    { name: 'Sandals', image: '/media/monogram-mesh-hero.jpg' },
+    { name: 'Posh', image: '/media/posh.jpg' },
+    { name: 'All eyes on me', image: '/media/all-eyes-on-me.jpg' },
+    { name: 'Runway', image: '/media/runway.jpg' },
+    { name: 'Old money', image: '/media/old-money.jpg' },
   ],
 
   campaign: {

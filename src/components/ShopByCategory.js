@@ -34,8 +34,8 @@ const ShopByCategory = ({ categories, products = [] }) => {
       <div className="container">
         <div className="section-head">
           <div className="section-head__title">
-            <p className="u-eyebrow">The Wardrobe</p>
-            <h2 className="u-title">Shop by silhouette</h2>
+            <p className="u-eyebrow">The Edits</p>
+            <h2 className="u-title">Shop by mood</h2>
           </div>
           <Link to="/products" className="link-underline link-quiet">All heels</Link>
         </div>
