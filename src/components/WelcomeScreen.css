@@ -11,6 +11,14 @@
   overflow: hidden;
   /* rendered logo size on the seam */
   --lw: min(150px, 34vw);
+  /* a slow, weighted premium curve: gentle to start, long glide to open */
+  --gate-ease: cubic-bezier(0.62, 0.04, 0.12, 1);
+  /* the field settles in rather than popping on load */
+  animation: welcomeFade 0.5s ease both;
+}
+@keyframes welcomeFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .welcome__panel {
@@ -19,7 +27,7 @@
   background-repeat: no-repeat;
   background-size: var(--lw) var(--lw);
   will-change: transform;
-  transition: transform var(--dur-lg, 0.88s) cubic-bezier(0.76, 0, 0.24, 1);
+  transition: transform 1.5s var(--gate-ease);
 }
 
 /* each half carries its share of the monogram, centred on the seam.
@@ -34,19 +42,22 @@
 .welcome.is-opening .welcome__panel--l { transform: translateX(-100%); }
 .welcome.is-opening .welcome__panel--r { transform: translateX(100%); }
 
-/* wordmark sits just under the monogram, fades as the gate opens */
+/* wordmark sits just under the monogram; lifts a touch and fades as the gate opens */
 .welcome__mark {
   position: absolute;
   left: 50%;
   top: calc(50% + var(--lw) / 2 + 1.5rem);
-  transform: translateX(-50%);
+  transform: translate(-50%, 0);
   display: grid;
   justify-items: center;
   gap: 0.45rem;
   text-align: center;
-  transition: opacity 0.35s var(--ease);
+  transition: opacity 0.7s var(--ease), transform 0.9s var(--gate-ease);
 }
-.welcome.is-opening .welcome__mark { opacity: 0; }
+.welcome.is-opening .welcome__mark {
+  opacity: 0;
+  transform: translate(-50%, -0.6rem);
+}
 
 .welcome__wordmark {
   font-family: var(--serif);

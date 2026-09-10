@@ -18,7 +18,7 @@ const prefersReduced = () =>
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const HOLD_MS = 1300; // the monogram sits composed (~1.3s) before the gate parts
-const OPEN_MS = 950; // the gate swings apart
+const OPEN_MS = 1600; // the gate glides open (matches the 1.5s panel transition)
 
 /**
  * BUKUR WORLD opening — a one-time (per session) brand moment: the BB monogram
