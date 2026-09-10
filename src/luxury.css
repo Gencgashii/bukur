@@ -797,12 +797,30 @@ button { font-family: inherit; color: inherit; }
   .pgrid, .pgrid--4, .pgrid--2 { --cols: 2; gap: 1.5rem 0.9rem; }
   .pcard__name { font-size: 1rem; }
   .pcard__price { font-size: 0.74rem; }
-  /* hero fills the first screen on load, next section never peeks under it.
-     lvh/vh are fixed values (no reflow as the toolbar shows/hides, unlike
-     dvh); vh is the universal fallback for engines without lvh. Deliberately
-     the large viewport height so there is never an ivory gap at the base. */
-  .hero { height: 100vh; height: 100lvh; }
+  /* hero fills exactly the visible viewport — dvh tracks the real height
+     under this browser's chrome (svh is the floor fallback). No gap, no
+     overflow. */
+  .hero { height: 100svh; height: 100dvh; min-height: 520px; }
   .hero__ctrls { bottom: 1.5rem; right: 1.25rem; }
+
+  /* ---- mobile scroll smoothness -----------------------------------------
+     kill the constant image drift (an always-running GPU animation) and the
+     header's backdrop blur (re-sampled every scroll frame) — both are the
+     usual causes of stutter on phones. The look is unchanged at rest. */
+  .media-drift { animation: none !important; transform: none !important; will-change: auto; }
+  .hdr.is-solid {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: color-mix(in srgb, var(--paper) 98%, transparent);
+  }
+
+  /* announcement bar: fit one line, quieter */
+  .hdr__bar {
+    font-size: 0.53rem;
+    letter-spacing: 0.14em;
+    padding: 0.5rem 0.9rem;
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+  }
 
   /* the signature split (§3) is a desktop-only editorial beat */
   .editorial--hide-mobile { display: none; }
