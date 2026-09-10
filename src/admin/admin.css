@@ -109,7 +109,7 @@
 .ad-burger { display: none; font-size: 1.4rem; background: none; border: none; cursor: pointer; color: var(--ad-ink); }
 .ad-scrim { display: none; }
 
-.ad-content { padding: clamp(1.5rem, 3vw, 2.5rem); max-width: 1200px; width: 100%; }
+.ad-content { padding: clamp(1.25rem, 3vw, 2.75rem); max-width: 1760px; width: 100%; margin-inline: auto; }
 
 /* ---- typography / page ------------------------------------------------------ */
 .ad-page { display: grid; gap: 1.5rem; }
