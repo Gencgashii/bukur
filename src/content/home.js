@@ -65,9 +65,12 @@ export const homeContent = {
   // Mood edits, not silhouette types. Each name must match a category created
   // in the admin (Categories) and assigned to products for the tile link to
   // filter the collection. Images live at /media/<slug>.jpg.
+  // `dim: true` applies a darker overlay to that tile — used to mute the
+  // bright light band in the posh / all-eyes source frames so the row reads
+  // consistently. Remove it once those images are re-generated seamlessly.
   categories: [
-    { name: 'Posh', image: '/media/posh.jpg' },
-    { name: 'All eyes on me', image: '/media/all-eyes-on-me.jpg' },
+    { name: 'Posh', image: '/media/posh.jpg', dim: true },
+    { name: 'All eyes on me', image: '/media/all-eyes-on-me.jpg', dim: true },
     { name: 'Runway', image: '/media/runway.jpg' },
     { name: 'Old money', image: '/media/old-money.jpg' },
   ],
