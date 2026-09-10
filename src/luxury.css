@@ -795,8 +795,10 @@ button { font-family: inherit; }
   .pgrid, .pgrid--4, .pgrid--2 { --cols: 2; gap: 1.5rem 0.9rem; }
   .pcard__name { font-size: 1rem; }
   .pcard__price { font-size: 0.74rem; }
-  /* hero fills the visible viewport — no ivory sliver under it on phones */
-  .hero { height: 100svh; height: 100dvh; }
+  /* hero fills the viewport on load — no ivory sliver under it on phones.
+     svh (not dvh) so the hero height is fixed and never reflows as the
+     mobile browser toolbar shows/hides during scroll. */
+  .hero { height: 100svh; }
   .hero__ctrls { bottom: 1.5rem; right: 1.25rem; }
 
   /* the signature split (§3) is a desktop-only editorial beat */
