@@ -13,13 +13,9 @@
   --lw: min(150px, 34vw);
   /* a slow, weighted premium curve: gentle to start, long glide to open */
   --gate-ease: cubic-bezier(0.62, 0.04, 0.12, 1);
-  /* the field settles in rather than popping on load */
-  animation: welcomeFade 0.5s ease both;
 }
-@keyframes welcomeFade {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
+/* the two opaque panels cover the store from the very first frame — no
+   fade-in (a fade would let the homepage show through while it ramps up) */
 
 .welcome__panel {
   flex: 1 1 50%;
