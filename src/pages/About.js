@@ -4,51 +4,103 @@ import usePageMeta from '../hooks/usePageMeta';
 import Reveal from '../components/Reveal';
 import EditorialSplit from '../components/EditorialSplit';
 import Img from '../components/Img';
+import aboutContent from '../content/about';
 import './About.css';
 
 const About = () => {
-  usePageMeta('About', 'BUKUR WORLD is a modern luxury footwear house from Prishtina, Kosovo — sculptural heels drawn with a confident instinct.');
+  usePageMeta(
+    'About',
+    'BUKUR WORLD is a modern luxury footwear house from Prishtina, Kosovo — sculptural heels drawn with a confident instinct, made in small runs and finished by hand.'
+  );
+
+  const c = aboutContent;
 
   return (
     <div className="about">
+      {/* hero ----------------------------------------------------------- */}
       <section className="about__hero">
-        <Img src="/media/lookbook-daylight.jpg" alt="BUKUR WORLD collection" sizes="100vw" priority fill />
+        <Img src={c.hero.image} alt={c.hero.alt} sizes="100vw" priority fill imgClassName="media-drift" />
         <div className="about__hero-inner container">
-          <p className="u-eyebrow" style={{ color: 'var(--ink)' }}>Est. Prishtina</p>
-          <h1 className="u-display u-display--light">The house of BUKUR</h1>
+          <p className="u-eyebrow about__hero-eyebrow">{c.hero.eyebrow}</p>
+          <h1 className="u-display u-display--light about__hero-title">{c.hero.title}</h1>
+          <p className="about__hero-lede">{c.hero.lede}</p>
         </div>
       </section>
 
-      <section className="section">
+      {/* manifesto ---------------------------------------------------------- */}
+      <section className="section about__manifesto">
         <div className="container container--narrow">
-          <Reveal>
-            <p className="u-lede" style={{ fontSize: 'clamp(1.15rem, 1.8vw, 1.4rem)' }}>
-              BUKUR is a modern luxury footwear house from Kosovo. We make heels the way a sculptor
-              works a form — proportion first, then the detail you only notice on the second look.
-            </p>
-            <p className="u-lede" style={{ marginTop: '1.5rem' }}>
-              Each silhouette begins in Prishtina and is built to move through the world: a confident
-              heel, a precise toe, an ankle strap that holds. Nothing decorative for its own sake.
-            </p>
+          <Reveal className="reveal--soft">
+            {c.manifesto.map((para, i) => (
+              <p key={i} className="about__manifesto-p">{para}</p>
+            ))}
           </Reveal>
         </div>
       </section>
 
+      {/* origin ----------------------------------------------------------- */}
       <EditorialSplit
-        eyebrow="The Craft"
-        title="Considered, not loud."
-        body="Satin and tulle, embroidered vamps, the openwork BUKUR heel. Our materials are chosen for how they age, and our lasts are refined until the shoe disappears on the foot."
-        cta={{ to: '/products', label: 'Explore the collection' }}
-        media={{ type: 'image', src: '/media/veil-mesh-trio.jpg', alt: 'BUKUR Veil Mesh Pump' }}
+        eyebrow={c.origin.eyebrow}
+        title={c.origin.title}
+        body={c.origin.body}
+        media={{ type: 'image', ...c.origin.media }}
+        wide
       />
 
-      <section className="section statement">
+      {/* pull quote ----------------------------------------------------- */}
+      <section className="about__quote">
         <div className="container container--narrow">
+          <Reveal className="reveal--soft">
+            <p className="about__quote-mark" aria-hidden="true">“</p>
+            <blockquote className="about__quote-text">{c.quote}</blockquote>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* signature ---------------------------------------------------------- */}
+      <EditorialSplit
+        eyebrow={c.signature.eyebrow}
+        title={c.signature.title}
+        body={c.signature.body}
+        media={{ type: 'image', ...c.signature.media }}
+        flip
+        dark
+        wide
+      />
+
+      {/* craft ---------------------------------------------------------- */}
+      <EditorialSplit
+        eyebrow={c.craft.eyebrow}
+        title={c.craft.title}
+        body={c.craft.body}
+        media={{ type: 'image', ...c.craft.media }}
+        wide
+      />
+
+      {/* values ---------------------------------------------------------- */}
+      <section className="section about__values-section">
+        <div className="container">
           <Reveal>
-            <p className="u-eyebrow" style={{ textAlign: 'center' }}>The Invitation</p>
-            <h2 className="u-title" style={{ marginBlock: '1.25rem' }}>Made for the entrance.</h2>
-            <p style={{ textAlign: 'center' }}>
-              <Link to="/products" className="btn btn--ghost">Shop all heels</Link>
+            <ul className="about__values">
+              {c.values.map((v) => (
+                <li key={v.label} className="about__value">
+                  <p className="about__value-label">{v.label}</p>
+                  <p className="about__value-text">{v.text}</p>
+                </li>
+              ))}
+            </ul>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* closing ---------------------------------------------------------- */}
+      <section className="section section--tight statement">
+        <div className="container container--narrow">
+          <Reveal className="reveal--soft">
+            <p className="u-eyebrow u-center">{c.closing.eyebrow}</p>
+            <h2 className="u-title" style={{ marginBlock: '1.25rem' }}>{c.closing.title}</h2>
+            <p>
+              <Link to={c.closing.cta.to} className="btn btn--ghost">{c.closing.cta.label}</Link>
             </p>
           </Reveal>
         </div>

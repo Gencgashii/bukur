@@ -1,10 +1,15 @@
+/* ==========================================================================
+   ABOUT — the house story. Editorial, restrained, photography-led.
+   ========================================================================== */
+
 .about__hero {
   position: relative;
-  min-height: clamp(420px, 60vh, 640px);
+  min-height: clamp(460px, 74vh, 760px);
   display: flex;
   align-items: flex-end;
   overflow: hidden;
-  background: var(--bone);
+  background: var(--field-dark);
+  color: var(--on-dark);
 }
 .about__hero img,
 .about__hero .img {
@@ -14,11 +19,109 @@
   height: 100%;
   object-fit: cover;
 }
+/* scrim so light copy holds on the cinematic frame */
+.about__hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(14, 12, 11, 0.22) 0%, transparent 28%, transparent 46%, rgba(14, 12, 11, 0.72) 100%),
+    radial-gradient(90% 60% at 14% 96%, rgba(14, 12, 11, 0.55), transparent 62%);
+}
 .about__hero-inner {
   position: relative;
   z-index: 2;
   width: 100%;
-  padding-bottom: clamp(2rem, 5vw, 4rem);
+  padding-bottom: clamp(2.25rem, 6vw, 4.5rem);
   display: grid;
-  gap: 0.9rem;
+  gap: 1rem;
+  max-width: 46ch;
+}
+.about__hero-eyebrow { color: var(--on-dark); opacity: 0.9; }
+.about__hero-title {
+  color: var(--on-dark);
+  font-size: clamp(2.9rem, 6.4vw, 6rem);
+  line-height: 0.98;
+  letter-spacing: -0.012em;
+}
+.about__hero-lede {
+  color: var(--on-dark);
+  font-size: clamp(1rem, 1.5vw, 1.2rem);
+  line-height: 1.6;
+  max-width: 40ch;
+}
+
+/* manifesto — large, quiet, centred */
+.about__manifesto .container { text-align: center; }
+.about__manifesto-p {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: clamp(1.35rem, 2.6vw, 2rem);
+  line-height: 1.42;
+  letter-spacing: -0.003em;
+  color: var(--ink);
+  max-width: 30ch;
+  margin-inline: auto;
+}
+.about__manifesto-p + .about__manifesto-p { margin-top: clamp(1.5rem, 3vw, 2.25rem); }
+
+/* pull quote — a single held line on the page ground */
+.about__quote {
+  padding-block: clamp(4rem, 10vw, 8.5rem);
+  text-align: center;
+  background: var(--bone);
+}
+.about__quote-mark {
+  font-family: var(--serif);
+  font-size: clamp(3rem, 7vw, 5.5rem);
+  line-height: 0.5;
+  color: var(--bronze);
+  margin-bottom: 0.9rem;
+}
+.about__quote-text {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: clamp(1.9rem, 4.4vw, 3.5rem);
+  line-height: 1.18;
+  letter-spacing: -0.012em;
+  color: var(--ink);
+  max-width: 20ch;
+  margin-inline: auto;
+}
+
+/* values — three quiet pillars, hairline-separated */
+.about__values-section { padding-block: clamp(3rem, 7vw, 6rem); }
+.about__values {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--line);
+}
+.about__value {
+  padding: clamp(1.75rem, 3vw, 2.75rem) clamp(1.25rem, 2.5vw, 2.25rem);
+  border-bottom: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+}
+.about__value:first-child { border-left: 1px solid var(--line); }
+.about__value-label {
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--bronze);
+  margin-bottom: 0.75rem;
+}
+.about__value-text {
+  font-size: 0.92rem;
+  line-height: 1.7;
+  color: var(--ink-soft);
+  max-width: 26ch;
+}
+
+@media (max-width: 900px) {
+  .about__values { grid-template-columns: 1fr; border-left: 1px solid var(--line); }
+  .about__value { border-right: 0; }
+  .about__value:first-child { border-left: 0; }
 }
