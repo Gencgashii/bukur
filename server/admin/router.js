@@ -588,11 +588,66 @@ router.patch('/orders/:id', async (req, res) => {
     }
   }
 
+  // Payment METHOD change — offline methods only (bank transfer <-> cash on
+  // delivery), and only while the order is still open. A card order is never
+  // switched to an offline method here.
+  const nextMethod = body.paymentMethod ?? body.payment_method;
+  if (nextMethod !== undefined) {
+    const method = String(nextMethod);
+    const OFFLINE_METHODS = [
+      config.PAYMENT_METHODS.BANK_TRANSFER,
+      config.PAYMENT_METHODS.CASH_ON_DELIVERY,
+    ];
+    if (!OFFLINE_METHODS.includes(method)) {
+      throw new AppError(
+        'invalid_payment_method',
+        'Payment method can only be set to bank transfer or cash on delivery.',
+        400
+      );
+    }
+    if (o.payment_method === config.PAYMENT_METHODS.CARD_TEB) {
+      throw new AppError(
+        'card_payment_not_manual',
+        'A card order cannot be switched to an offline method here.',
+        409
+      );
+    }
+    if (o.payment_status === 'paid' || o.payment_status === 'refunded') {
+      throw new AppError(
+        'order_settled',
+        'This order is already settled — the payment method cannot be changed.',
+        409
+      );
+    }
+    if (method !== o.payment_method) {
+      await withTransaction(async (client) => {
+        await client.query(
+          `UPDATE orders SET payment_method = $1, updated_at = NOW() WHERE id = $2`,
+          [method, id]
+        );
+        // keep the still-open payment row in step; never touch a settled one
+        await client.query(
+          `UPDATE payments SET method = $1, provider = 'offline', updated_at = NOW()
+             WHERE order_id = $2 AND status IN ('unpaid', 'pending', 'failed', 'cancelled')`,
+          [method, id]
+        );
+      });
+      await audit(req, 'order.payment_method_changed', 'order', id, {
+        from: o.payment_method,
+        to: method,
+      });
+    }
+    changed = true;
+  }
+
   // Payment status changes ONLY through the payment state machine, and only
   // for offline methods. Card/TEB can never be marked paid this way.
   const nextPayment = body.paymentStatus ?? body.payment_status;
   if (nextPayment !== undefined) {
-    if (o.payment_method === config.PAYMENT_METHODS.CARD_TEB) {
+    const currentMethod =
+      (await query(`SELECT payment_method FROM orders WHERE id = $1`, [id])).rows[0]?.payment_method ||
+      o.payment_method;
+    if (currentMethod === config.PAYMENT_METHODS.CARD_TEB) {
       throw new AppError(
         'card_payment_not_manual',
         'Card payments cannot be set manually. They are confirmed by the payment provider.',
@@ -602,7 +657,7 @@ router.patch('/orders/:id', async (req, res) => {
     await payments.adminSetPaymentOutcome({ orderId: id, status: String(nextPayment) });
     await audit(req, 'order.payment_status_changed', 'order', id, {
       to: String(nextPayment),
-      method: o.payment_method,
+      method: currentMethod,
     });
     changed = true;
   }

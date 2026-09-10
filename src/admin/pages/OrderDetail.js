@@ -11,18 +11,27 @@ const NEXT_FULFILLMENT = {
   cancelled: [],
 };
 
+const METHOD_LABELS = {
+  bank_transfer: 'Bank transfer',
+  cash_on_delivery: 'Cash on delivery',
+  card_teb: 'Card (online)',
+};
+
 export default function OrderDetail() {
   const { id } = useParams();
   const { loading, error, data, reload } = useAsync(() => api.order(id), [id]);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
+  const [methodDraft, setMethodDraft] = useState(null);
 
   if (loading) return <Spinner label="Loading order…" />;
   if (error) return <Msg kind="error">{error}</Msg>;
   const o = data.order;
   const addr = o.shippingAddress || {};
   const isOffline = o.paymentMethod === 'bank_transfer' || o.paymentMethod === 'cash_on_delivery';
+  const settled = o.paymentStatus === 'paid' || o.paymentStatus === 'refunded';
+  const chosenMethod = methodDraft ?? o.paymentMethod;
 
   const setFulfillment = async (to) => {
     setBusy(true); setErr(''); setMsg('');
@@ -33,6 +42,16 @@ export default function OrderDetail() {
     setBusy(true); setErr(''); setMsg('');
     try { await api.updateOrder(id, { paymentStatus: 'paid' }); setMsg('Payment marked paid.'); reload(); }
     catch (e) { setErr(e.message); } finally { setBusy(false); }
+  };
+  const changeMethod = async () => {
+    if (chosenMethod === o.paymentMethod) return;
+    setBusy(true); setErr(''); setMsg('');
+    try {
+      await api.updateOrder(id, { paymentMethod: chosenMethod });
+      setMsg(`Payment method → ${METHOD_LABELS[chosenMethod] || chosenMethod}.`);
+      setMethodDraft(null);
+      reload();
+    } catch (e) { setErr(e.message); } finally { setBusy(false); }
   };
 
   return (
@@ -66,9 +85,31 @@ export default function OrderDetail() {
         <div className="ad-card">
           <h2 className="ad-h2">Payment</h2>
           <dl className="ad-dl">
-            <dt>Method</dt><dd>{o.paymentMethod}</dd>
+            <dt>Method</dt><dd>{METHOD_LABELS[o.paymentMethod] || o.paymentMethod}</dd>
             <dt>Status</dt><dd><Pill value={o.paymentStatus} /></dd>
           </dl>
+
+          {o.paymentMethod !== 'card_teb' && !settled && (
+            <div className="ad-filters" style={{ marginTop: '0.25rem', marginBottom: '0.75rem' }}>
+              <label className="ad-field__label" htmlFor="ord-method">Change method</label>
+              <select
+                id="ord-method"
+                value={chosenMethod}
+                disabled={busy}
+                onChange={(e) => setMethodDraft(e.target.value)}
+              >
+                <option value="bank_transfer">Bank transfer</option>
+                <option value="cash_on_delivery">Cash on delivery</option>
+              </select>
+              <button
+                className="ad-btn"
+                disabled={busy || chosenMethod === o.paymentMethod}
+                onClick={changeMethod}
+              >
+                Change
+              </button>
+            </div>
+          )}
           {o.payments.length > 0 && (
             <Table
               rowKey={(p) => p.id}
