@@ -17,7 +17,7 @@ const prefersReduced = () =>
   typeof window.matchMedia === 'function' &&
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-const HOLD_MS = 850; // the monogram sits composed
+const HOLD_MS = 1300; // the monogram sits composed (~1.3s) before the gate parts
 const OPEN_MS = 950; // the gate swings apart
 
 /**

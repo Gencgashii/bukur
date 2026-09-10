@@ -22,10 +22,10 @@
   transition: transform var(--dur-lg, 0.88s) cubic-bezier(0.76, 0, 0.24, 1);
 }
 
-/* each half carries its share of the monogram, centred on the seam */
+/* each half carries its share of the monogram, centred on the seam.
+   No seam line — the split reads only when the panels part. */
 .welcome__panel--l {
   background-position: calc(100% + var(--lw) / 2) center;
-  border-right: 1px solid rgba(154, 122, 84, 0.28);
 }
 .welcome__panel--r {
   background-position: calc(var(--lw) / -2) center;
