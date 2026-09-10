@@ -31,6 +31,7 @@
     "eject": "react-scripts eject",
     "server": "node server/index.js",
     "create-admin": "node server/create-admin.js",
+    "change-admin-email": "node server/change-admin-email.js",
     "media:optimize": "node scripts/optimize-media.js",
     "media:verify": "node scripts/verify-media.js",
     "media:reindex": "node scripts/reindex-product-media.js",
