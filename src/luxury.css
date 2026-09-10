@@ -797,10 +797,11 @@ button { font-family: inherit; color: inherit; }
   .pgrid, .pgrid--4, .pgrid--2 { --cols: 2; gap: 1.5rem 0.9rem; }
   .pcard__name { font-size: 1rem; }
   .pcard__price { font-size: 0.74rem; }
-  /* hero fills the viewport on load — no ivory sliver under it on phones.
-     svh (not dvh) so the hero height is fixed and never reflows as the
-     mobile browser toolbar shows/hides during scroll. */
-  .hero { height: 100svh; }
+  /* hero fills the first screen on load, next section never peeks under it.
+     lvh/vh are fixed values (no reflow as the toolbar shows/hides, unlike
+     dvh); vh is the universal fallback for engines without lvh. Deliberately
+     the large viewport height so there is never an ivory gap at the base. */
+  .hero { height: 100vh; height: 100lvh; }
   .hero__ctrls { bottom: 1.5rem; right: 1.25rem; }
 
   /* the signature split (§3) is a desktop-only editorial beat */
