@@ -52,6 +52,13 @@ const Header = () => {
 
   const count = getCartItemsCount();
 
+  // Tapping the logo always returns to the top of the page — smoothly when
+  // already home, instantly (via ScrollToTop) when navigating from elsewhere.
+  const handleLogoClick = () => {
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: 0, left: 0, behavior: reduce ? 'auto' : 'smooth' });
+  };
+
   return (
     <header className={`hdr ${solid ? 'is-solid' : ''} ${overHero ? '' : 'is-plain'}`}>
       <div className="hdr__bar">Complimentary delivery across Kosovo &amp; the region</div>
@@ -65,7 +72,7 @@ const Header = () => {
           ))}
         </nav>
 
-        <Link to="/" className="hdr__wordmark" aria-label="BUKUR WORLD home">
+        <Link to="/" className="hdr__wordmark" aria-label="BUKUR WORLD home" onClick={handleLogoClick}>
           <img src={logo} alt="BUKUR" className="hdr__logo" width="189" height="189" />
         </Link>
 
