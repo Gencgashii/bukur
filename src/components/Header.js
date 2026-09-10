@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import logo from '../assets/bukur-logo.png';
@@ -76,40 +77,47 @@ const Header = () => {
         </nav>
       </div>
 
-      {/* mobile / full nav overlay */}
-      <div className={`overlay ${menuOpen ? 'is-open' : ''}`} aria-hidden={!menuOpen}>
-        <div className="overlay__top">
-          <span className="hdr__wordmark"><img src={logo} alt="BUKUR" className="hdr__logo" width="189" height="189" /></span>
-          <button className="overlay__close" onClick={() => setMenuOpen(false)}>Close</button>
-        </div>
-        <nav className="overlay__nav">
-          {NAV.map((n) => (
-            <Link key={n.label} to={n.to}>{n.label}</Link>
-          ))}
-          <Link to="/cart">Bag{count > 0 ? ` (${count})` : ''}</Link>
-        </nav>
-        <div className="overlay__foot u-fine">
-          <span>Prishtina</span><span>Est. 2026</span>
-        </div>
-      </div>
+      {/* overlays are portalled to <body> so an ancestor's backdrop-filter
+          (.hdr.is-solid) can't trap their position: fixed */}
+      {createPortal(
+        <>
+          {/* mobile / full nav overlay */}
+          <div className={`overlay ${menuOpen ? 'is-open' : ''}`} aria-hidden={!menuOpen}>
+            <div className="overlay__top">
+              <span className="hdr__wordmark"><img src={logo} alt="BUKUR" className="hdr__logo" width="189" height="189" /></span>
+              <button className="overlay__close" onClick={() => setMenuOpen(false)}>Close</button>
+            </div>
+            <nav className="overlay__nav">
+              {NAV.map((n) => (
+                <Link key={n.label} to={n.to}>{n.label}</Link>
+              ))}
+              <Link to="/cart">Bag{count > 0 ? ` (${count})` : ''}</Link>
+            </nav>
+            <div className="overlay__foot u-fine">
+              <span>Prishtina</span><span>Est. 2026</span>
+            </div>
+          </div>
 
-      {/* search overlay */}
-      <div className={`overlay ${searchOpen ? 'is-open' : ''}`} aria-hidden={!searchOpen}>
-        <div className="overlay__top">
-          <span className="u-fine">Search</span>
-          <button className="overlay__close" onClick={() => setSearchOpen(false)}>Close</button>
-        </div>
-        <form className="overlay__search" onSubmit={submitSearch} style={{ marginTop: 'auto', marginBottom: 'auto' }}>
-          <input
-            autoFocus={searchOpen}
-            value={term}
-            onChange={(e) => setTerm(e.target.value)}
-            placeholder="Search the collection"
-            aria-label="Search the collection"
-          />
-          <button type="submit" className="link-underline">Go</button>
-        </form>
-      </div>
+          {/* search overlay */}
+          <div className={`overlay ${searchOpen ? 'is-open' : ''}`} aria-hidden={!searchOpen}>
+            <div className="overlay__top">
+              <span className="u-fine">Search</span>
+              <button className="overlay__close" onClick={() => setSearchOpen(false)}>Close</button>
+            </div>
+            <form className="overlay__search" onSubmit={submitSearch} style={{ marginTop: 'auto', marginBottom: 'auto' }}>
+              <input
+                autoFocus={searchOpen}
+                value={term}
+                onChange={(e) => setTerm(e.target.value)}
+                placeholder="Search the collection"
+                aria-label="Search the collection"
+              />
+              <button type="submit" className="link-underline">Go</button>
+            </form>
+          </div>
+        </>,
+        document.body,
+      )}
     </header>
   );
 };
