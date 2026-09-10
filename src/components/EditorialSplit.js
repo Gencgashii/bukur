@@ -13,7 +13,7 @@ const MEDIA_SIZES = '(max-width: 1080px) 100vw, 55vw';
  *   wide  — give the image more of the row (asymmetric)
  *   priority — eager-load the image (above the fold)
  */
-const EditorialSplit = ({ eyebrow, title, body, cta, media, flip = false, dark = false, wide = false, priority = false }) => {
+const EditorialSplit = ({ eyebrow, title, body, cta, media, flip = false, dark = false, wide = false, priority = false, className = '' }) => {
   const ref = useReveal();
   const cls = [
     'editorial',
@@ -21,6 +21,7 @@ const EditorialSplit = ({ eyebrow, title, body, cta, media, flip = false, dark =
     flip ? 'editorial--flip' : '',
     dark ? 'editorial--dark' : '',
     wide ? 'editorial--wide' : '',
+    className,
   ]
     .filter(Boolean)
     .join(' ');

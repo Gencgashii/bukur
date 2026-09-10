@@ -760,7 +760,10 @@ button { font-family: inherit; }
    ========================================================================== */
 @media (max-width: 1080px) {
   .pgrid, .pgrid--4 { --cols: 3; }
-  .editorial, .editorial--flip, .editorial--wide { grid-template-columns: 1fr; }
+  .editorial,
+  .editorial--flip,
+  .editorial--wide,
+  .editorial--flip.editorial--wide { grid-template-columns: 1fr; }
   .editorial--flip .editorial__media { order: 1; }
   .editorial--flip .editorial__body { order: 2; }
   .editorial__media { min-height: 62vw; }
@@ -792,8 +795,36 @@ button { font-family: inherit; }
   .pgrid, .pgrid--4, .pgrid--2 { --cols: 2; gap: 1.5rem 0.9rem; }
   .pcard__name { font-size: 1rem; }
   .pcard__price { font-size: 0.74rem; }
-  .hero { height: 92svh; }
+  /* hero fills the visible viewport — no ivory sliver under it on phones */
+  .hero { height: 100svh; height: 100dvh; }
   .hero__ctrls { bottom: 1.5rem; right: 1.25rem; }
+
+  /* the signature split (§3) is a desktop-only editorial beat */
+  .editorial--hide-mobile { display: none; }
+
+  /* ---- §7 dark editorial — premium stacked treatment on phones -------- */
+  .editorial--dark { background: var(--ink); }
+  /* a taller, near-portrait statement image */
+  .editorial--dark .editorial__media { min-height: 96vw; }
+  /* dissolve the base of the photo into the ink copy block instead of the
+     ivory page-seam fade the generic stacked rule applies */
+  .editorial--dark .editorial__media::after {
+    top: auto;
+    bottom: 0;
+    height: 55%;
+    background: linear-gradient(180deg, rgba(23, 20, 18, 0) 0%, rgba(23, 20, 18, 0.55) 55%, var(--ink) 100%);
+  }
+  .editorial--dark .editorial__body {
+    margin-top: -1px;
+    gap: 1.15rem;
+    padding: clamp(2.5rem, 9vw, 3.5rem) clamp(1.5rem, 7vw, 2.25rem) clamp(3.25rem, 12vw, 4.25rem);
+  }
+  .editorial--dark .editorial__body .u-eyebrow { color: var(--bronze); }
+  .editorial--dark .editorial__body .u-title {
+    font-size: clamp(2.1rem, 9vw, 2.9rem);
+    line-height: 1.03;
+  }
+  .editorial--dark .editorial__body .u-lede { max-width: 34ch; }
   /* silhouette tiles: square on mobile so the section isn't a long scroll */
   .cat { aspect-ratio: 1 / 1; }
   .cat__label { padding: 1.5rem 1.35rem; }

@@ -46,7 +46,7 @@ const Home = () => {
         </Reveal>
       </section>
 
-      {/* 3 — editorial: the signature ------------------------------------- */}
+      {/* 3 — editorial: the signature (desktop only — hidden on phones) --- */}
       <EditorialSplit
         eyebrow={ed1.eyebrow}
         title={ed1.title}
@@ -54,6 +54,7 @@ const Home = () => {
         cta={ed1.cta}
         media={{ type: 'image', ...ed1.media }}
         wide={ed1.wide}
+        className="editorial--hide-mobile"
       />
 
       {/* 4 — the first edit (product-driven) ------------------------------- */}
