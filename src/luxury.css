@@ -797,10 +797,11 @@ button { font-family: inherit; color: inherit; }
   .pgrid, .pgrid--4, .pgrid--2 { --cols: 2; gap: 1.5rem 0.9rem; }
   .pcard__name { font-size: 1rem; }
   .pcard__price { font-size: 0.74rem; }
-  /* hero fills exactly the visible viewport — dvh tracks the real height
-     under this browser's chrome (svh is the floor fallback). No gap, no
-     overflow. */
-  .hero { height: 100svh; height: 100dvh; min-height: 520px; }
+  /* hero height is svh only — a FIXED value (viewport with the browser
+     chrome shown, i.e. the load state). Never use dvh here: dvh recomputes
+     as the iOS address bar shows/hides during scroll, resizing the hero and
+     shoving every section below it — that is the global mobile scroll jump. */
+  .hero { height: 100svh; min-height: 520px; }
   .hero__ctrls { bottom: 1.5rem; right: 1.25rem; }
 
   /* ---- mobile scroll smoothness -----------------------------------------
