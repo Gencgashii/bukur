@@ -16,17 +16,15 @@ const FALLBACK_IMAGE = '/media/lookbook-daylight.jpg';
 const ShopByCategory = ({ categories, products = [] }) => {
   const ref = useReveal();
 
-  let cats = Array.isArray(categories) && categories.length
-    ? categories.map((c) => [c.name, c.image || FALLBACK_IMAGE, Boolean(c.dim)])
-    : null;
+  let cats = Array.isArray(categories) && categories.length ? categories.map((c) => [c.name, c.image || FALLBACK_IMAGE]) : null;
 
   if (!cats) {
     const seen = new Map();
     for (const p of products) {
       if (!p.category || seen.has(p.category)) continue;
-      seen.set(p.category, [p.images?.[0] || p.image || FALLBACK_IMAGE, false]);
+      seen.set(p.category, p.images?.[0] || p.image || FALLBACK_IMAGE);
     }
-    cats = [...seen.entries()].map(([name, [img, dim]]) => [name, img, dim]);
+    cats = [...seen.entries()];
   }
 
   if (!cats.length) return null;
@@ -43,12 +41,8 @@ const ShopByCategory = ({ categories, products = [] }) => {
         </div>
       </div>
       <div className="cats">
-        {cats.map(([name, img, dim]) => (
-          <Link
-            key={name}
-            to={`/products?category=${encodeURIComponent(name)}`}
-            className={`cat${dim ? ' cat--dim' : ''}`}
-          >
+        {cats.map(([name, img]) => (
+          <Link key={name} to={`/products?category=${encodeURIComponent(name)}`} className="cat">
             <Img src={img} alt={`${name} — BUKUR WORLD`} sizes="(max-width: 760px) 100vw, 25vw" fill />
             <span className="cat__label">{name}<small>Discover</small></span>
           </Link>

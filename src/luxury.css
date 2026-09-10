@@ -725,23 +725,6 @@ button { font-family: inherit; color: inherit; }
   inset: 0;
   background: linear-gradient(180deg, transparent 62%, rgba(14, 12, 11, 0.34) 100%);
 }
-/* two source frames carry a bright light band across the backdrop — a
-   darker, mid-weighted veil + a small tone knock pulls them into line with
-   the other tiles. Remove `dim` in home.js once the images are re-generated. */
-.cat--dim::after {
-  background: linear-gradient(
-    180deg,
-    rgba(14, 12, 11, 0.32) 0%,
-    rgba(14, 12, 11, 0.14) 16%,
-    rgba(14, 12, 11, 0.36) 40%,
-    rgba(14, 12, 11, 0.44) 60%,
-    rgba(14, 12, 11, 0.34) 76%,
-    rgba(14, 12, 11, 0.5) 100%
-  );
-}
-.cat--dim .img { filter: brightness(0.9) saturate(0.92); }
-.cat.cat--dim:hover .img { filter: brightness(0.95) saturate(0.95) contrast(1.03); }
-
 /* a hairline frame draws in on hover */
 .cat::before {
   content: '';
