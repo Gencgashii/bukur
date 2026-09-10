@@ -1,64 +1,70 @@
+/* ==========================================================================
+   BUKUR WORLD — opening gate. Ivory field · BB monogram on the seam ·
+   the two halves draw apart to reveal the store. Once per session.
+   ========================================================================== */
+
 .welcome {
   position: fixed;
   inset: 0;
-  z-index: 3000;
-  background: var(--ivory, #f8f4ec);
-  color: var(--ink, #171412);
+  z-index: var(--z-welcome);
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: clamp(1.5rem, 5vw, 3rem);
-  animation: welcome-in 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  /* rendered logo size on the seam */
+  --lw: min(150px, 34vw);
 }
-.welcome.is-leaving { opacity: 0; transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1); }
 
-.welcome__rule { height: 1px; background: rgba(23, 20, 18, 0.18); }
+.welcome__panel {
+  flex: 1 1 50%;
+  background-color: var(--paper);
+  background-repeat: no-repeat;
+  background-size: var(--lw) var(--lw);
+  will-change: transform;
+  transition: transform var(--dur-lg, 0.88s) cubic-bezier(0.76, 0, 0.24, 1);
+}
 
-.welcome__inner {
-  margin: auto;
-  text-align: center;
+/* each half carries its share of the monogram, centred on the seam */
+.welcome__panel--l {
+  background-position: calc(100% + var(--lw) / 2) center;
+  border-right: 1px solid rgba(154, 122, 84, 0.28);
+}
+.welcome__panel--r {
+  background-position: calc(var(--lw) / -2) center;
+}
+
+.welcome.is-opening .welcome__panel--l { transform: translateX(-100%); }
+.welcome.is-opening .welcome__panel--r { transform: translateX(100%); }
+
+/* wordmark sits just under the monogram, fades as the gate opens */
+.welcome__mark {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + var(--lw) / 2 + 1.5rem);
+  transform: translateX(-50%);
   display: grid;
-  gap: 1.25rem;
   justify-items: center;
+  gap: 0.45rem;
+  text-align: center;
+  transition: opacity 0.35s var(--ease);
 }
-.welcome__wordmark {
-  font-family: var(--serif, 'Cormorant Garamond', serif);
-  font-weight: 400;
-  font-size: clamp(2.5rem, 8vw, 5rem);
-  letter-spacing: 0.14em;
-  line-height: 1;
-}
-.welcome__tag {
-  font-size: 0.7rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--muted, #857c71);
-}
-.welcome__langs {
-  margin-top: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  font-size: 0.72rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-}
-.welcome__langs button {
-  background: none;
-  border: 0;
-  cursor: pointer;
-  color: inherit;
-  letter-spacing: inherit;
-  padding: 0.5rem 0.25rem;
-  border-bottom: 1px solid transparent;
-  transition: border-color 0.3s ease, color 0.3s ease;
-}
-.welcome__langs button:hover { border-bottom-color: currentColor; color: var(--bronze, #9a7a54); }
-.welcome__langs span { color: rgba(23, 20, 18, 0.3); }
+.welcome.is-opening .welcome__mark { opacity: 0; }
 
-@keyframes welcome-in { from { opacity: 0; } to { opacity: 1; } }
+.welcome__wordmark {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: clamp(1.05rem, 2.4vw, 1.55rem);
+  letter-spacing: 0.34em;
+  text-indent: 0.34em; /* balance the tracking */
+  color: var(--ink);
+  white-space: nowrap;
+}
+.welcome__place {
+  font-size: 0.55rem;
+  font-weight: 500;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--bronze);
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .welcome { animation: none; }
-  .welcome.is-leaving { transition: none; }
+  .welcome { display: none; }
 }

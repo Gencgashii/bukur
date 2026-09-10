@@ -1,43 +1,84 @@
-import React, { useState } from 'react';
-import { useLanguage } from '../context/LanguageContext';
+import React, { useEffect, useState } from 'react';
+import logo from '../assets/bukur-logo.png';
 import './WelcomeScreen.css';
 
 const SEEN_KEY = 'bukur-welcome-seen';
 
 const wasSeen = () => {
-  try { return sessionStorage.getItem(SEEN_KEY) === '1'; } catch { return false; }
+  try {
+    return sessionStorage.getItem(SEEN_KEY) === '1';
+  } catch {
+    return true; // if storage is unavailable, don't gate the site
+  }
 };
 
-const WelcomeScreen = () => {
-  const { setLanguage } = useLanguage();
-  const [visible, setVisible] = useState(!wasSeen());
-  const [leaving, setLeaving] = useState(false);
+const prefersReduced = () =>
+  typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const choose = (lang) => {
-    setLanguage(lang);
+const HOLD_MS = 850; // the monogram sits composed
+const OPEN_MS = 950; // the gate swings apart
+
+/**
+ * BUKUR WORLD opening — a one-time (per session) brand moment: the BB monogram
+ * holds on an ivory field, then the field splits down the seam and the two
+ * halves draw apart like a gate, revealing the store. No language choice, no
+ * interaction required. Click / key / scroll skips straight to the opening.
+ * Honours prefers-reduced-motion (shown once, no animation).
+ */
+export default function WelcomeScreen() {
+  const [phase, setPhase] = useState(() => {
+    if (wasSeen() || prefersReduced()) return 'done';
+    return 'hold';
+  });
+
+  useEffect(() => {
+    if (phase === 'done') {
+      try { sessionStorage.setItem(SEEN_KEY, '1'); } catch { /* ignore */ }
+      return undefined;
+    }
     try { sessionStorage.setItem(SEEN_KEY, '1'); } catch { /* ignore */ }
-    setLeaving(true);
-    setTimeout(() => setVisible(false), 700);
-  };
 
-  if (!visible) return null;
+    const open = setTimeout(() => setPhase('opening'), HOLD_MS);
+    let done = setTimeout(() => setPhase('done'), HOLD_MS + OPEN_MS);
+
+    const skip = () => {
+      clearTimeout(open);
+      clearTimeout(done);
+      setPhase('opening');
+      done = setTimeout(() => setPhase('done'), OPEN_MS);
+    };
+    const once = { once: true };
+    window.addEventListener('pointerdown', skip, once);
+    window.addEventListener('keydown', skip, once);
+    window.addEventListener('wheel', skip, { once: true, passive: true });
+
+    return () => {
+      clearTimeout(open);
+      clearTimeout(done);
+      window.removeEventListener('pointerdown', skip);
+      window.removeEventListener('keydown', skip);
+      window.removeEventListener('wheel', skip);
+    };
+    // run once for the lifetime of the splash
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (phase === 'done') return null;
 
   return (
-    <div className={`welcome ${leaving ? 'is-leaving' : ''}`} role="dialog" aria-label="Choose language">
-      <div className="welcome__rule welcome__rule--top" aria-hidden="true" />
-      <div className="welcome__inner">
-        <p className="u-eyebrow">Est. Prishtina</p>
-        <h1 className="welcome__wordmark">BUKUR WORLD</h1>
-        <p className="welcome__tag">Sculptural heels, made for the entrance</p>
-        <div className="welcome__langs">
-          <button onClick={() => choose('en')} aria-label="Enter in English">English</button>
-          <span aria-hidden="true">/</span>
-          <button onClick={() => choose('sq')} aria-label="Hyr në shqip">Shqip</button>
-        </div>
+    <div
+      className={`welcome ${phase === 'opening' ? 'is-opening' : ''}`}
+      role="presentation"
+      aria-hidden="true"
+    >
+      <div className="welcome__panel welcome__panel--l" style={{ backgroundImage: `url(${logo})` }} />
+      <div className="welcome__panel welcome__panel--r" style={{ backgroundImage: `url(${logo})` }} />
+      <div className="welcome__mark">
+        <span className="welcome__wordmark">BUKUR WORLD</span>
+        <span className="welcome__place">Est. Prishtina</span>
       </div>
-      <div className="welcome__rule welcome__rule--bottom" aria-hidden="true" />
     </div>
   );
-};
-
-export default WelcomeScreen;
+}
