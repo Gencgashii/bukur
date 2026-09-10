@@ -19,9 +19,13 @@
   padding: 1.1rem 0 clamp(1.75rem, 4vw, 3rem);
 }
 .collection__filter-btn {
+  -webkit-appearance: none;
+  appearance: none;
   background: none;
   border: 0;
+  color: var(--ink);
   cursor: pointer;
+  font-family: inherit;
   font-size: 0.7rem;
   font-weight: 500;
   letter-spacing: 0.2em;

@@ -431,7 +431,7 @@ button { font-family: inherit; }
 }
 .overlay.is-open { transform: none; visibility: visible; }
 .overlay__top { display: flex; justify-content: space-between; align-items: center; }
-.overlay__close { background: none; border: 0; font-size: 0.7rem; letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer; }
+.overlay__close { -webkit-appearance: none; appearance: none; background: none; border: 0; color: var(--ink); font: inherit; font-size: 0.7rem; letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer; }
 .overlay__nav { margin: auto 0; display: grid; gap: 1.15rem; }
 .overlay__nav a {
   font-family: var(--serif);
