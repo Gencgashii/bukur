@@ -697,8 +697,8 @@ button { font-family: inherit; color: inherit; }
    (hairline seams in the page ground + a thin rule top and bottom) */
 .cats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
-  gap: clamp(2px, 0.4vw, 8px);
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
   border-block: 1px solid var(--line);
 }
 .cat {
@@ -912,6 +912,7 @@ button { font-family: inherit; color: inherit; }
   }
   .editorial--dark .editorial__body .u-lede { max-width: 34ch; }
   /* silhouette tiles: square on mobile so the section isn't a long scroll */
+  .cats { grid-template-columns: 1fr; }
   .cat { aspect-ratio: 1 / 1; }
   .cat__label { padding: 1.5rem 1.35rem; }
   /* PDP mobile sticky bar clears the home indicator */
