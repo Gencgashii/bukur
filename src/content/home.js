@@ -68,8 +68,8 @@ export const homeContent = {
   categories: [
     { name: 'Posh', image: '/media/posh.jpg' },
     { name: 'All eyes on me', image: '/media/all-eyes-on-me.jpg' },
-    { name: 'Runway', image: '/media/runway.jpg' },
-    { name: 'Old money', image: '/media/old-money.jpg' },
+    { name: 'Runway', image: '/media/aura.jpg' },
+    { name: 'Old money', image: '/media/diva.jpg' },
   ],
 
   campaign: {
