@@ -716,8 +716,16 @@ button { font-family: inherit; color: inherit; }
   inset: 0;
   opacity: 0.9;
   background: var(--ink);
+  /* each source photo's dark-to-burgundy backdrop sits at a different height;
+     --tileZoom/--tileY (set per tile below) reframe them onto one shared line */
+  transform: translateY(var(--tileY, 0%)) scale(var(--tileZoom, 1));
   transition: transform 1.9s var(--ease), opacity var(--dur-md) var(--ease), filter var(--dur-md) var(--ease);
 }
+/* per-tile reframing so the backdrop transition lands on the same line across all four */
+.cats .cat:nth-child(1) { --tileZoom: 1.35; --tileY: -8.8%; }  /* Posh */
+.cats .cat:nth-child(2) { --tileZoom: 1.35; --tileY: 7.1%; }   /* All eyes on me */
+.cats .cat:nth-child(3) { --tileZoom: 1.35; --tileY: -13.5%; } /* Runway */
+.cats .cat:nth-child(4) { --tileZoom: 1.35; --tileY: -0.9%; }  /* Old money */
 /* a lighter, later fade so a dark photograph doesn't sink into mud */
 .cat::after {
   content: '';
@@ -736,7 +744,11 @@ button { font-family: inherit; color: inherit; }
   transition: box-shadow var(--dur-md) var(--ease);
 }
 .cat:hover::before { box-shadow: inset 0 0 0 1px rgba(244, 239, 230, 0.16); }
-.cat:hover .img { transform: scale(1.03); opacity: 0.86; filter: brightness(1.05) contrast(1.03); }
+.cat:hover .img {
+  transform: translateY(var(--tileY, 0%)) scale(calc(var(--tileZoom, 1) * 1.03));
+  opacity: 0.86;
+  filter: brightness(1.05) contrast(1.03);
+}
 
 .cat__label {
   position: relative;
@@ -913,6 +925,10 @@ button { font-family: inherit; color: inherit; }
   .editorial--dark .editorial__body .u-lede { max-width: 34ch; }
   /* silhouette tiles: square on mobile so the section isn't a long scroll */
   .cats { grid-template-columns: 1fr; }
+  /* the desktop-row backdrop alignment doesn't apply to the stacked square crop
+     (:nth-child(n) matches every tile, matching the base rules' specificity so
+     this override actually wins instead of losing to source order) */
+  .cats .cat:nth-child(n) { --tileZoom: 1; --tileY: 0%; }
   .cat { aspect-ratio: 1 / 1; }
   .cat__label { padding: 1.5rem 1.35rem; }
   /* PDP mobile sticky bar clears the home indicator */
