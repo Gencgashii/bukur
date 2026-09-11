@@ -716,16 +716,21 @@ button { font-family: inherit; color: inherit; }
   inset: 0;
   opacity: 0.9;
   background: var(--ink);
-  /* each source photo's dark-to-burgundy backdrop sits at a different height;
-     --tileZoom/--tileY (set per tile below) reframe them onto one shared line */
+  /* each source photo's dark-to-burgundy backdrop sits at a slightly different
+     height and intensity; --tileZoom/--tileY (below) reframe the glow onto one
+     shared line, --tileBright evens out how strong that glow reads */
   transform: translateY(var(--tileY, 0%)) scale(var(--tileZoom, 1));
+  filter: brightness(var(--tileBright, 1));
   transition: transform 1.9s var(--ease), opacity var(--dur-md) var(--ease), filter var(--dur-md) var(--ease);
 }
-/* The re-shot campaign set (posh/all-eyes-on-me/runway/old-money -final) was
-   composed with the backdrop glow at a consistent height on purpose, so only
-   Posh — the one outlier, with generous clear space above the shoe — needs a
-   nudge to land on the same line as the other three. */
-.cats .cat:nth-child(1) { --tileZoom: 1.36; --tileY: -18%; }   /* Posh */
+/* Fine per-tile reframing so the backdrop glow's peak lands on the exact same
+   line across all four (each is a tiny, safe crop — checked against the
+   source photos' clear space) plus a light brightness match, since the
+   re-shoot's spotlight came out a little hotter on Runway than the others. */
+.cats .cat:nth-child(1) { --tileZoom: 1.3714; --tileY: -18.57%; --tileBright: 1.1; }  /* Posh */
+.cats .cat:nth-child(2) { --tileZoom: 1.0256; --tileY: -1.28%; --tileBright: 1; }     /* All eyes on me */
+.cats .cat:nth-child(3) { --tileZoom: 1.0256; --tileY: 1.28%; --tileBright: 0.92; }   /* Runway */
+.cats .cat:nth-child(4) { --tileZoom: 1.0278; --tileY: -1.39%; --tileBright: 1.1; }   /* Old money */
 /* a lighter, later fade so a dark photograph doesn't sink into mud */
 .cat::after {
   content: '';
@@ -747,7 +752,7 @@ button { font-family: inherit; color: inherit; }
 .cat:hover .img {
   transform: translateY(var(--tileY, 0%)) scale(calc(var(--tileZoom, 1) * 1.03));
   opacity: 0.86;
-  filter: brightness(1.05) contrast(1.03);
+  filter: brightness(calc(var(--tileBright, 1) * 1.05)) contrast(1.03);
 }
 
 .cat__label {
