@@ -694,13 +694,26 @@ button { font-family: inherit; color: inherit; }
 .campaign__inner { position: relative; z-index: 2; max-width: var(--container); margin-inline: auto; width: 100%; padding: 0 var(--gutter) clamp(3rem, 8vw, 6rem); display: grid; gap: 1.4rem; justify-items: start; }
 
 /* shop by silhouette — a considered gallery row
-   (hairline seams in the page ground + a thin rule top and bottom) */
+   (a soft, blurred glow line top and bottom instead of a crisp rule) */
 .cats {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 0;
-  border-block: 1px solid var(--line);
 }
+.cats::before,
+.cats::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--line);
+  filter: blur(3px);
+  pointer-events: none;
+}
+.cats::before { top: 0; }
+.cats::after { bottom: 0; }
 .cat {
   position: relative;
   aspect-ratio: 3 / 4;
