@@ -721,10 +721,14 @@ button { font-family: inherit; color: inherit; }
   transform: translateY(var(--tileY, 0%)) scale(var(--tileZoom, 1));
   transition: transform 1.9s var(--ease), opacity var(--dur-md) var(--ease), filter var(--dur-md) var(--ease);
 }
-/* Posh, Runway and Old money already crop close to the shoe/reflection — any
-   extra zoom there cuts into the product, so only "All eyes on me" (which has
-   generous clear space top and bottom) is nudged to meet the other three. */
-.cats .cat:nth-child(2) { --tileZoom: 1.25; --tileY: 10%; }
+/* Posh, Runway and Old money crop close to the reflection, so each only gets
+   the small, one-directional nudge its own clear space actually allows
+   (checked against the source photos, not guessed): Runway's ankle strap
+   starts ~14% down (room to trim the top only), Old money's buckles end
+   ~91% down (room to trim the bottom only). Posh is already on the line. */
+.cats .cat:nth-child(2) { --tileZoom: 1.25; --tileY: 10%; }    /* All eyes on me */
+.cats .cat:nth-child(3) { --tileZoom: 1.10; --tileY: -5%; }    /* Runway */
+.cats .cat:nth-child(4) { --tileZoom: 1.05; --tileY: 2.5%; }   /* Old money */
 /* a lighter, later fade so a dark photograph doesn't sink into mud */
 .cat::after {
   content: '';
