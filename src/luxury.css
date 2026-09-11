@@ -721,14 +721,11 @@ button { font-family: inherit; color: inherit; }
   transform: translateY(var(--tileY, 0%)) scale(var(--tileZoom, 1));
   transition: transform 1.9s var(--ease), opacity var(--dur-md) var(--ease), filter var(--dur-md) var(--ease);
 }
-/* Posh, Runway and Old money crop close to the reflection, so each only gets
-   the small, one-directional nudge its own clear space actually allows
-   (checked against the source photos, not guessed): Runway's ankle strap
-   starts ~14% down (room to trim the top only), Old money's buckles end
-   ~91% down (room to trim the bottom only). Posh is already on the line. */
-.cats .cat:nth-child(2) { --tileZoom: 1.25; --tileY: 10%; }    /* All eyes on me */
-.cats .cat:nth-child(3) { --tileZoom: 1.10; --tileY: -5%; }    /* Runway */
-.cats .cat:nth-child(4) { --tileZoom: 1.05; --tileY: 2.5%; }   /* Old money */
+/* The re-shot campaign set (posh/all-eyes-on-me/runway/old-money -final) was
+   composed with the backdrop glow at a consistent height on purpose, so only
+   Posh — the one outlier, with generous clear space above the shoe — needs a
+   nudge to land on the same line as the other three. */
+.cats .cat:nth-child(1) { --tileZoom: 1.36; --tileY: -18%; }   /* Posh */
 /* a lighter, later fade so a dark photograph doesn't sink into mud */
 .cat::after {
   content: '';

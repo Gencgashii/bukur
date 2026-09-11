@@ -66,10 +66,10 @@ export const homeContent = {
   // in the admin (Categories) and assigned to products for the tile link to
   // filter the collection. Images live at /media/<slug>.jpg.
   categories: [
-    { name: 'Posh', image: '/media/posh.jpg' },
-    { name: 'All eyes on me', image: '/media/all-eyes-on-me.jpg' },
-    { name: 'Runway', image: '/media/aura.jpg' },
-    { name: 'Old money', image: '/media/diva.jpg' },
+    { name: 'Posh', image: '/media/posh-final.jpg' },
+    { name: 'All eyes on me', image: '/media/all-eyes-on-me-final.jpg' },
+    { name: 'Runway', image: '/media/runway-final.jpg' },
+    { name: 'Old money', image: '/media/old-money-final.jpg' },
   ],
 
   campaign: {
