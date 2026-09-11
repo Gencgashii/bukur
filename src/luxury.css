@@ -721,11 +721,10 @@ button { font-family: inherit; color: inherit; }
   transform: translateY(var(--tileY, 0%)) scale(var(--tileZoom, 1));
   transition: transform 1.9s var(--ease), opacity var(--dur-md) var(--ease), filter var(--dur-md) var(--ease);
 }
-/* per-tile reframing so the backdrop transition lands on the same line across all four */
-.cats .cat:nth-child(1) { --tileZoom: 1.35; --tileY: -8.8%; }  /* Posh */
-.cats .cat:nth-child(2) { --tileZoom: 1.35; --tileY: 7.1%; }   /* All eyes on me */
-.cats .cat:nth-child(3) { --tileZoom: 1.35; --tileY: -13.5%; } /* Runway */
-.cats .cat:nth-child(4) { --tileZoom: 1.35; --tileY: -0.9%; }  /* Old money */
+/* Posh, Runway and Old money already crop close to the shoe/reflection — any
+   extra zoom there cuts into the product, so only "All eyes on me" (which has
+   generous clear space top and bottom) is nudged to meet the other three. */
+.cats .cat:nth-child(2) { --tileZoom: 1.25; --tileY: 10%; }
 /* a lighter, later fade so a dark photograph doesn't sink into mud */
 .cat::after {
   content: '';
