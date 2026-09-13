@@ -16,8 +16,17 @@ jobs:
         with:
           node-version-file: '.nvmrc'
 
-      - name: Ensure pg_dump is available
-        run: which pg_dump || sudo apt-get update && sudo apt-get install -y postgresql-client
+      # Neon runs PostgreSQL 17. pg_dump refuses to dump a server newer than
+      # itself, and ubuntu-latest's default postgresql-client is v16 — so pull
+      # the matching v17 client from the official PGDG apt repo instead.
+      - name: Install PostgreSQL 17 client
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc --fail \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          sudo sh -c 'echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(. /etc/os-release && echo $VERSION_CODENAME)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
 
       - name: Run pg_dump
         env:
