@@ -24,7 +24,7 @@
   --ad-ok: #4f6f52;
   --ad-warn: #8a6d3b;
 
-  --ad-sans: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --ad-sans: 'Manrope', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Inter', Arial, sans-serif;
   --ad-serif: 'Cormorant Garamond', 'Times New Roman', Georgia, serif;
   --ad-ease: cubic-bezier(0.22, 1, 0.36, 1);
 

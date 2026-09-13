@@ -126,8 +126,10 @@ a:hover { text-decoration: none; }
 ::selection { background: var(--ink); color: var(--paper); }
 
 /* inherit text colour too, so a borderless button never falls back to the
-   platform accent (iOS Safari renders bare buttons in system blue) */
-button { font-family: inherit; color: inherit; }
+   platform accent (iOS Safari renders bare buttons in system blue). Also
+   covers checkboxes/radios/selects/textareas — some browsers give native
+   form widgets their own default font instead of inheriting the page's. */
+button, input, select, textarea { font-family: inherit; color: inherit; }
 
 /* one consistent focus ring across the storefront */
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
