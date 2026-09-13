@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import useFocusTrap from '../hooks/useFocusTrap';
+import useScrollLock from '../hooks/useScrollLock';
 import './PdpDrawer.css';
 
 /**
@@ -11,14 +12,7 @@ import './PdpDrawer.css';
 const PdpDrawer = ({ open, onClose, title, children }) => {
   const panelRef = useRef(null);
   useFocusTrap({ active: open, ref: panelRef, onEscape: onClose });
-
-  useEffect(() => {
-    if (!open) return undefined;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [open]);
+  useScrollLock(open);
 
   return createPortal(
     <div className={`pdp-drawer ${open ? 'is-open' : ''}`} aria-hidden={!open}>

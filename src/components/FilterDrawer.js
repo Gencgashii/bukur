@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import useFocusTrap from '../hooks/useFocusTrap';
+import useScrollLock from '../hooks/useScrollLock';
 import './FilterDrawer.css';
 
 const FilterDrawer = ({
@@ -14,11 +15,7 @@ const FilterDrawer = ({
 }) => {
   const panelRef = useRef(null);
   useFocusTrap({ active: open, ref: panelRef, onEscape: onClose });
-
-  useEffect(() => {
-    document.body.style.overflow = open ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
-  }, [open]);
+  useScrollLock(open);
 
   const toggleSize = (s) => {
     const next = value.sizes.includes(s)

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import useFocusTrap from '../hooks/useFocusTrap';
+import useScrollLock from '../hooks/useScrollLock';
 import Img from './Img';
 import './ProductGallery.css';
 
@@ -14,6 +15,7 @@ const ProductGallery = ({ images = [], alt = '' }) => {
   const lbRef = useRef(null);
 
   useFocusTrap({ active: lightbox >= 0, ref: lbRef, onEscape: () => setLightbox(-1) });
+  useScrollLock(lightbox >= 0);
 
   useEffect(() => {
     if (lightbox < 0) return undefined;
@@ -23,8 +25,7 @@ const ProductGallery = ({ images = [], alt = '' }) => {
       if (e.key === 'ArrowLeft') setLightbox((i) => (i - 1 + list.length) % list.length);
     };
     document.addEventListener('keydown', onKey);
-    document.body.style.overflow = 'hidden';
-    return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
+    return () => document.removeEventListener('keydown', onKey);
   }, [lightbox, list.length]);
 
   const onScroll = () => {

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import useFocusTrap from '../hooks/useFocusTrap';
+import useScrollLock from '../hooks/useScrollLock';
 import logo from '../assets/bukur-logo.png';
 import './Header.css';
 
@@ -43,10 +44,7 @@ const Header = () => {
     setSearchOpen(false);
   }, [location.pathname, location.search]);
 
-  useEffect(() => {
-    document.body.style.overflow = menuOpen || searchOpen ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
-  }, [menuOpen, searchOpen]);
+  useScrollLock(menuOpen || searchOpen);
 
   const submitSearch = (e) => {
     e.preventDefault();

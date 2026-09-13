@@ -333,6 +333,16 @@ button, input, select, textarea { font-family: inherit; color: inherit; }
     border-color var(--dur-md) var(--ease), box-shadow var(--dur-md) var(--ease);
   border-bottom: 1px solid transparent;
 }
+/* Every page but the homepage hero renders `.hdr.is-plain` (position:
+   sticky) — an in-flow element that already shrinks correctly when
+   useScrollLock adds padding-right to <body>. Only the transparent,
+   viewport-pinned `position: fixed` header (homepage only) needs its own
+   matching padding-right, or it expands into the vanished scrollbar's
+   space and its centered content visibly shifts when a drawer/menu opens.
+   Applying this to the sticky variant too would double-compensate. */
+.hdr:not(.is-plain) {
+  padding-right: var(--scrollbar-w, 0px);
+}
 .hdr__bar {
   text-align: center;
   font-size: 0.6rem;
