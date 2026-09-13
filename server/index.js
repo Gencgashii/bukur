@@ -10,7 +10,8 @@ const bcrypt = require('bcryptjs');
 const config = require('./config');
 const { pool, query, withTransaction, initDatabase } = require('./db');
 const { AppError, errorHandler, notFoundHandler } = require('./lib/errors');
-const { validateOrderInput, str, EMAIL_RE } = require('./lib/validation');
+const { validateOrderInput, str, EMAIL_RE, positiveIntId } = require('./lib/validation');
+const { parseProductListQuery, buildProductFilterSql, PRODUCT_SORTS } = require('./lib/productQuery');
 const { computeOrderTotals } = require('./lib/pricing');
 const { orderFingerprint } = require('./lib/idempotency');
 const { cookieParser } = require('./lib/cookies');
@@ -147,14 +148,76 @@ app.delete('/auth/session', (_req, res) => {
 
 // ---------------------------------------------------------------------------
 // Products (public read) — published, not archived.
+//
+// True server-side pagination: FILTER -> SORT -> PAGINATE, all at the SQL
+// level (LIMIT/OFFSET on the already-filtered, already-sorted set — never
+// "fetch everything, slice in JS"). `COUNT(*) OVER()` piggybacks the total
+// row count onto the same query instead of a second round-trip.
 // ---------------------------------------------------------------------------
 app.get('/store/products', async (req, res) => {
-  const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 100);
+  const q = parseProductListQuery(req.query);
+  const params = [];
+  const whereSql = buildProductFilterSql(q, params);
+  const offset = (q.page - 1) * q.limit;
+  params.push(q.limit, offset);
   const result = await query(
-    `${productSelect} WHERE p.status = 'published' AND NOT p.archived ORDER BY p.created_at DESC LIMIT $1`,
-    [limit]
+    `SELECT p.*, c.name AS category_name, COUNT(*) OVER()::int AS full_count
+       FROM products p LEFT JOIN categories c ON c.id = p.category_id
+      WHERE ${whereSql}
+      ORDER BY ${PRODUCT_SORTS[q.sort]}
+      LIMIT $${params.length - 1} OFFSET $${params.length}`,
+    params
   );
-  res.json({ products: result.rows.map(serializeProduct) });
+  const total = result.rows[0]?.full_count ?? 0;
+  const totalPages = Math.max(Math.ceil(total / q.limit), 1);
+  res.json({
+    products: result.rows.map(serializeProduct),
+    pagination: {
+      page: q.page,
+      limit: q.limit,
+      total,
+      totalPages,
+      hasNextPage: q.page < totalPages,
+    },
+  });
+});
+
+// Single product by id — used by the PDP so it never depends on whichever
+// page of the catalog happens to be loaded elsewhere in the app.
+app.get('/store/products/:id', async (req, res) => {
+  const id = positiveIntId(req.params.id, 'Product id');
+  const result = await query(
+    `${productSelect} WHERE p.id = $1 AND p.status = 'published' AND NOT p.archived`,
+    [id]
+  );
+  if (!result.rows[0]) throw new AppError('not_found', 'Product not found.', 404);
+  res.json({ product: serializeProduct(result.rows[0]) });
+});
+
+// Lightweight filter facets (distinct categories / sizes / price bounds across
+// the PUBLISHED catalog) — powers the FilterDrawer's chip options without the
+// frontend ever needing to load every product just to know what's filterable.
+app.get('/store/product-filters', async (req, res) => {
+  const categories = (
+    await query(
+      `SELECT DISTINCT c.name FROM products p JOIN categories c ON c.id = p.category_id
+        WHERE p.status = 'published' AND NOT p.archived AND NOT c.archived
+        ORDER BY c.name`
+    )
+  ).rows.map((r) => r.name);
+  const sizes = (
+    await query(
+      `SELECT DISTINCT jsonb_array_elements_text(p.sizes) AS size FROM products p
+        WHERE p.status = 'published' AND NOT p.archived`
+    )
+  ).rows.map((r) => r.size).sort((a, b) => Number(a) - Number(b) || a.localeCompare(b));
+  const priceRow = (
+    await query(
+      `SELECT MIN(price_cents)::int AS min, MAX(price_cents)::int AS max FROM products p
+        WHERE p.status = 'published' AND NOT p.archived`
+    )
+  ).rows[0] || { min: 0, max: 0 };
+  res.json({ categories, sizes, priceCents: { min: priceRow.min || 0, max: priceRow.max || 0 } });
 });
 
 // ---------------------------------------------------------------------------

@@ -1,6 +1,14 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { products as initialProducts } from '../data/products';
 import { API_URL } from '../config';
+import { normalizeApiProduct } from '../lib/normalizeProduct';
+
+// This context exists ONLY to feed the small "4 products" widgets (Home's new
+// arrivals, Cart's upsell row) — NOT the /products catalog, which fetches its
+// own paginated results directly (see src/pages/Products.js). Kept small on
+// purpose: those widgets only ever slice 4 items, so there's no reason to
+// pull anywhere near a full catalog page for them.
+const WIDGET_PRODUCTS_LIMIT = 16;
 
 const ProductsContext = createContext();
 
@@ -20,7 +28,7 @@ export const ProductsProvider = ({ children }) => {
   useEffect(() => {
     const loadProducts = async () => {
       try {
-        const url = `${API_URL.replace(/\/$/, '')}/store/products?limit=100`;
+        const url = `${API_URL.replace(/\/$/, '')}/store/products?limit=${WIDGET_PRODUCTS_LIMIT}&sort=new`;
         const response = await fetch(url);
         if (!response.ok) throw new Error('Could not load products from the backend');
         const data = await response.json();
@@ -67,50 +75,4 @@ export const ProductsProvider = ({ children }) => {
       {children}
     </ProductsContext.Provider>
   );
-};
-
-// Normalises a product from the BUKUR Express API (server/lib/serializers.js).
-// The extra `?.` fallbacks tolerate older/other backend shapes; the live API
-// provides `priceCents`, `sizes`, `images`, `thumbnail`, `stock`, `status`.
-const normalizeApiProduct = (product) => {
-  const variant = product.variants?.[0];
-  const priceCents =
-    product.priceCents ??
-    variant?.calculated_price?.calculated_amount ??
-    variant?.prices?.[0]?.amount ??
-    0;
-  const option = product.options?.find((item) => item.title?.toLowerCase() === 'size');
-  // Sizes come from the authoritative backend (`product.sizes`). They are NOT
-  // fabricated. An empty list means the product has no configured sizes yet.
-  const sizes =
-    Array.isArray(product.sizes) && product.sizes.length
-      ? product.sizes.map(String)
-      : option?.values?.map((item) => item.value) || [];
-  const images = (product.images?.map((image) => image.url) || []).filter(Boolean);
-  const primary = product.thumbnail || images[0] || '';
-
-  const tracks = Boolean(product.trackInventory);
-  const stock = Number(product.stock ?? 0);
-  const published = product.status ? product.status === 'published' : true;
-  const inStock = published && (!tracks || stock > 0);
-
-  return {
-    id: product.id,
-    name: product.title || product.name || 'Untitled',
-    sku: product.sku || '',
-    price: priceCents / 100,
-    priceCents,
-    image: primary,
-    images: images.length ? images : [primary].filter(Boolean),
-    description: product.description || '',
-    category: product.category?.name || product.categories?.[0]?.name || 'Heels',
-    categoryId: product.categoryId ?? product.category?.id ?? null,
-    gender: 'Women',
-    sizes,
-    featured: Boolean(product.featured),
-    newArrival: Boolean(product.newArrival),
-    stock,
-    trackInventory: tracks,
-    inStock,
-  };
 };

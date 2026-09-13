@@ -1,25 +1,68 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { useProducts } from '../context/ProductsContext';
+import { API_URL } from '../config';
 import usePageMeta, { useJsonLd, SITE_ORIGIN } from '../hooks/usePageMeta';
 import { track } from '../lib/analytics';
 import ProductGallery from '../components/ProductGallery';
 import ProductGrid from '../components/ProductGrid';
 import PdpDrawer from '../components/PdpDrawer';
+import { normalizeApiProduct } from '../lib/normalizeProduct';
 import './ProductDetail.css';
 
+const apiBase = API_URL.replace(/\/$/, '');
 const eur = (n) => `€${Number(n || 0).toLocaleString('en-IE', { maximumFractionDigits: 0 })}`;
 
 const ProductDetail = () => {
   const { id } = useParams();
-  const { products, loading } = useProducts();
   const { addToCart } = useCart();
 
-  const product = useMemo(
-    () => products.find((p) => String(p.id) === String(id)),
-    [products, id]
-  );
+  // The PDP looks up exactly one product by id — it never depends on
+  // whichever page of the catalog happens to be loaded elsewhere in the app.
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [related, setRelated] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setNotFound(false);
+    setProduct(null);
+    setRelated([]);
+    (async () => {
+      try {
+        const res = await fetch(`${apiBase}/store/products/${encodeURIComponent(id)}`);
+        if (res.status === 404) {
+          if (!cancelled) setNotFound(true);
+          return;
+        }
+        if (!res.ok) throw new Error('Could not load this product.');
+        const data = await res.json();
+        const normalized = normalizeApiProduct(data.product);
+        if (cancelled) return;
+        setProduct(normalized);
+        if (normalized.category) {
+          fetch(`${apiBase}/store/products?category=${encodeURIComponent(normalized.category)}&limit=5`)
+            .then((r) => (r.ok ? r.json() : { products: [] }))
+            .then((d) => {
+              if (cancelled) return;
+              const rel = (d.products || [])
+                .map(normalizeApiProduct)
+                .filter((p) => String(p.id) !== String(normalized.id))
+                .slice(0, 4);
+              setRelated(rel);
+            })
+            .catch(() => {});
+        }
+      } catch {
+        if (!cancelled) setNotFound(true);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [id]);
 
   const [size, setSize] = useState('');
   const [qty, setQty] = useState(1);
@@ -70,7 +113,7 @@ const ProductDetail = () => {
     return () => io.disconnect();
   }, [product]);
 
-  if (loading && !products.length) {
+  if (loading) {
     return (
       <div className="pd">
         <div className="pd__grid">
@@ -81,7 +124,7 @@ const ProductDetail = () => {
     );
   }
 
-  if (!product) {
+  if (notFound || !product) {
     return (
       <div className="state">
         <p className="u-eyebrow">Not found</p>
@@ -108,8 +151,6 @@ const ProductDetail = () => {
     setAdded(true);
     setTimeout(() => setAdded(false), 3500);
   };
-
-  const related = products.filter((p) => p.id !== product.id).slice(0, 4);
 
   const META = [
     { key: 'details', label: 'Details' },

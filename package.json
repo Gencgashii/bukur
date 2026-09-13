@@ -35,7 +35,7 @@
     "db:backup": "node scripts/backup-db.js",
     "db:verify-restore": "node scripts/verify-restore.js",
     "production:check": "node scripts/production-check.js",
-    "test:server": "node --test server/tests/pricing.test.js server/tests/security.test.js server/tests/admin.test.js server/tests/storage.test.js server/tests/email.test.js"
+    "test:server": "node --test server/tests/pricing.test.js server/tests/security.test.js server/tests/admin.test.js server/tests/storage.test.js server/tests/email.test.js server/tests/productQuery.test.js"
   },
   "engines": {
     "node": ">=18"
