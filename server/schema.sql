@@ -226,3 +226,13 @@ CREATE TABLE IF NOT EXISTS store_settings (
   value JSONB NOT NULL DEFAULT '{}'::jsonb,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Footer newsletter sign-ups ("The BUKUR Letter"). Storage only — no sending
+-- pipeline yet; visible to admins at /admin/subscribers.
+CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+  id SERIAL PRIMARY KEY,
+  email TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS newsletter_subscribers_email_uidx ON newsletter_subscribers (LOWER(email));
+CREATE INDEX IF NOT EXISTS newsletter_subscribers_created_at_idx ON newsletter_subscribers (created_at DESC);

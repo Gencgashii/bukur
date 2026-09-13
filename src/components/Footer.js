@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { API_URL } from '../config';
 import logo from '../assets/bukur-logo.png';
 import './Footer.css';
+
+const newsletterApi = `${API_URL.replace(/\/$/, '')}/store/custom/newsletter`;
 
 const Footer = () => {
   const [email, setEmail] = useState('');
   const [done, setDone] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
 
   return (
     <footer className="ft">
@@ -48,20 +53,41 @@ const Footer = () => {
         <div className="ft__news">
           <p className="u-fine" style={{ color: '#bcb3a4' }}>The BUKUR Letter</p>
           <form
-            onSubmit={(e) => { e.preventDefault(); if (email.trim()) setDone(true); }}
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const value = email.trim();
+              if (!value || busy || done) return;
+              setBusy(true);
+              setError('');
+              try {
+                const res = await fetch(newsletterApi, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ email: value }),
+                });
+                if (!res.ok) throw new Error();
+                setDone(true);
+              } catch {
+                setError('Something went wrong. Please try again.');
+              } finally {
+                setBusy(false);
+              }
+            }}
           >
             <label className="sr-only" htmlFor="ft-email">Email address</label>
             <input
               id="ft-email"
               type="email"
+              autoComplete="email"
               placeholder={done ? 'Thank you — you are on the list' : 'Email address'}
               value={done ? '' : email}
               onChange={(e) => setEmail(e.target.value)}
-              disabled={done}
+              disabled={done || busy}
               required
             />
-            <button type="submit" disabled={done}>{done ? '✓' : 'Subscribe'}</button>
+            <button type="submit" disabled={done || busy}>{done ? '✓' : busy ? '…' : 'Subscribe'}</button>
           </form>
+          {error && <p className="ft__news-err">{error}</p>}
         </div>
       </div>
 

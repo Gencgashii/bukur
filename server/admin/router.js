@@ -840,6 +840,24 @@ async function listCategories(_req, res) {
 router.get('/categories', listCategories);
 router.get('/product-categories', listCategories); // backward-compatible alias
 
+// Footer newsletter sign-ups ("The BUKUR Letter") — read-only list for admins.
+router.get('/newsletter-subscribers', async (req, res) => {
+  const { limit, offset, page } = pageParams(req, 50, 200);
+  const total = Number((await query(`SELECT COUNT(*)::int n FROM newsletter_subscribers`)).rows[0].n);
+  const rows = (
+    await query(
+      `SELECT id, email, created_at FROM newsletter_subscribers ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
+      [limit, offset]
+    )
+  ).rows;
+  res.json({
+    subscribers: rows.map((r) => ({ id: r.id, email: r.email, createdAt: r.created_at })),
+    page,
+    limit,
+    total,
+  });
+});
+
 async function createCategory(req, res) {
   const name = str(req.body?.name, { field: 'Category name', min: 2, max: 80 });
   const slug = slugify(name);

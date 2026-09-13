@@ -171,3 +171,27 @@ index/sequence checks + a drift check that `schema.sql` reproduces the live
 schema). See `docs/DATABASE-RECOVERY.md`. Phase 5D verified **zero drift**:
 `schema.sql` on a fresh DB == production (9 tables / 90 columns / 33 constraints
 / 32 indexes / 8 sequences).
+
+---
+
+# Newsletter subscribers — Phase 6
+
+New table, additive only:
+
+- `newsletter_subscribers.id`         `SERIAL PRIMARY KEY`
+- `newsletter_subscribers.email`      `TEXT NOT NULL`
+- `newsletter_subscribers.created_at` `TIMESTAMPTZ NOT NULL DEFAULT NOW()`
+- Unique index on `LOWER(email)` (case-insensitive de-dupe)
+- Index on `created_at DESC` (admin listing)
+
+Backs the footer "The BUKUR Letter" sign-up form (`POST
+/store/custom/newsletter`, public, rate-limited) and its admin view (`GET
+/admin/newsletter-subscribers`, `/admin/subscribers` page). Storage only —
+there is no outbound sending pipeline (Mailchimp/Klaviyo/etc.) yet; that is a
+separate, later integration.
+
+### Rollback
+
+```sql
+DROP TABLE IF EXISTS newsletter_subscribers;
+```

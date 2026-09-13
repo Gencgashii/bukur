@@ -10,7 +10,7 @@ const bcrypt = require('bcryptjs');
 const config = require('./config');
 const { pool, query, withTransaction, initDatabase } = require('./db');
 const { AppError, errorHandler, notFoundHandler } = require('./lib/errors');
-const { validateOrderInput, str } = require('./lib/validation');
+const { validateOrderInput, str, EMAIL_RE } = require('./lib/validation');
 const { computeOrderTotals } = require('./lib/pricing');
 const { orderFingerprint } = require('./lib/idempotency');
 const { cookieParser } = require('./lib/cookies');
@@ -24,6 +24,7 @@ const {
   authLimiter,
   orderLimiter,
   paymentLimiter,
+  newsletterLimiter,
 } = require('./lib/rateLimit');
 const payments = require('./payments');
 
@@ -256,6 +257,20 @@ app.post('/store/custom/orders', orderLimiter, async (req, res) => {
   }
 
   res.status(201).json(publicOrderResponse(result.order, result.totals, requiresPayment, emailStatus));
+});
+
+// Footer "The BUKUR Letter" sign-up. Storage only — no fake success, no
+// outbound sending pipeline yet (see server/MIGRATIONS.md, Phase 6).
+app.post('/store/custom/newsletter', newsletterLimiter, async (req, res) => {
+  const email = str(req.body?.email, { field: 'Email', max: 160 }).toLowerCase();
+  if (!EMAIL_RE.test(email)) {
+    throw new AppError('invalid_input', 'A valid email address is required.', 400);
+  }
+  await query(
+    `INSERT INTO newsletter_subscribers (email) VALUES ($1) ON CONFLICT (LOWER(email)) DO NOTHING`,
+    [email]
+  );
+  res.status(201).json({ ok: true });
 });
 
 function createOrderTransaction(input, idempotencyKey, fingerprint) {

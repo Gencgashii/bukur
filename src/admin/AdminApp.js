@@ -12,6 +12,7 @@ import OrderDetail from './pages/OrderDetail';
 import Payments from './pages/Payments';
 import Customers from './pages/Customers';
 import Categories from './pages/Categories';
+import Subscribers from './pages/Subscribers';
 import Settings from './pages/Settings';
 import './admin.css';
 
@@ -61,6 +62,7 @@ export default function AdminApp() {
         <Route path="payments" element={<Payments />} />
         <Route path="customers" element={<Customers />} />
         <Route path="categories" element={<Categories />} />
+        <Route path="subscribers" element={<Subscribers />} />
         <Route path="settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>

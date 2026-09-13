@@ -32,6 +32,15 @@ const paymentLimiter = rateLimit({
   handler: json('Too many payment requests. Please wait a moment and try again.'),
 });
 
+// Newsletter sign-up — generous for real visitors, blocks scripted spam.
+const newsletterLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: json('Too many attempts. Please wait a moment and try again.'),
+});
+
 // Generic mutation guard for other sensitive admin writes.
 const adminWriteLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
@@ -41,4 +50,4 @@ const adminWriteLimiter = rateLimit({
   handler: json('Too many requests. Please slow down.'),
 });
 
-module.exports = { authLimiter, orderLimiter, paymentLimiter, adminWriteLimiter };
+module.exports = { authLimiter, orderLimiter, paymentLimiter, newsletterLimiter, adminWriteLimiter };

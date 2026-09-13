@@ -94,6 +94,9 @@ export const api = {
   customers: (qs = '') => request(`/admin/customers${qs}`),
   customer: (email) => request(`/admin/customers/${encodeURIComponent(email)}`),
 
+  // newsletter
+  subscribers: (qs = '') => request(`/admin/newsletter-subscribers${qs}`),
+
   // categories
   categories: () => request('/admin/categories'),
   createCategory: (name) => request('/admin/categories', { method: 'POST', body: { name } }),

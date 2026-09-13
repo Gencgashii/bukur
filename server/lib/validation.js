@@ -139,4 +139,4 @@ function validateOrderInput(body) {
   };
 }
 
-module.exports = { validateOrderInput, str, intInRange, positiveIntId };
+module.exports = { validateOrderInput, str, intInRange, positiveIntId, EMAIL_RE };

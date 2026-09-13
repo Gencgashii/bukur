@@ -853,10 +853,48 @@ button { font-family: inherit; color: inherit; }
 .ft__col a, .ft__col span { display: block; font-size: 0.82rem; line-height: 2.1; color: var(--on-dark); }
 .ft__col a:hover { color: var(--bronze); }
 .ft__news { grid-column: 1 / -1; margin-top: clamp(2rem, 4vw, 3rem); display: flex; gap: 1rem; align-items: center; border-top: 1px solid rgba(244, 239, 230, 0.14); padding-top: clamp(2rem, 4vw, 3rem); flex-wrap: wrap; }
-.ft__news form { display: flex; flex: 1; min-width: 260px; border-bottom: 1px solid rgba(244, 239, 230, 0.4); }
-.ft__news input { flex: 1; background: none; border: 0; outline: 0; color: var(--on-dark); font: inherit; padding: 0.75rem 0; }
+.ft__news form {
+  display: flex;
+  flex: 1;
+  min-width: 260px;
+  border-bottom: 1px solid rgba(244, 239, 230, 0.32);
+  transition: border-color var(--dur-sm) var(--ease);
+}
+.ft__news form:focus-within { border-bottom-color: var(--on-dark); }
+.ft__news input {
+  flex: 1;
+  background: none;
+  border: 0;
+  outline: 0;
+  color: var(--on-dark);
+  font: inherit;
+  padding: 0.75rem 0;
+}
 .ft__news input::placeholder { color: #8f877a; }
-.ft__news button { background: none; border: 0; color: var(--on-dark); cursor: pointer; font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; }
+/* Chrome/Edge force a light autofill background — fight it back to transparent
+   with the long-transition trick (there is no direct "background" override). */
+.ft__news input:-webkit-autofill,
+.ft__news input:-webkit-autofill:hover,
+.ft__news input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--on-dark);
+  caret-color: var(--on-dark);
+  transition: background-color 600000s 0s, color 600000s 0s;
+}
+.ft__news button {
+  background: none;
+  border: 0;
+  color: var(--on-dark);
+  cursor: pointer;
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  padding-left: 1rem;
+  opacity: 1;
+  transition: opacity var(--dur-sm) var(--ease);
+}
+.ft__news button:disabled { cursor: default; opacity: 0.6; }
+.ft__news-err { flex-basis: 100%; margin: 0; font-size: 0.7rem; color: #e8a2a2; }
 .ft__legal { max-width: var(--container); margin: clamp(2.5rem, 5vw, 4rem) auto 0; padding-inline: var(--gutter); display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase; color: #8f877a; }
 
 /* ==========================================================================
