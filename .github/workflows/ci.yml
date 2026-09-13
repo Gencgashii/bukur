@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-test-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Lint
+        run: npx eslint src --max-warnings 0
+
+      - name: Backend tests
+        run: npm run test:server
+
+      - name: Frontend production build
+        run: npm run build
+        env:
+          CI: true
+          GENERATE_SOURCEMAP: false
