@@ -31,7 +31,7 @@ export const homeContent = {
   editorials: [
     {
       id: 'signature',
-      eyebrow: 'The Signature',
+      eyebrow: 'The Lady',
       title: 'The bow, reimagined.',
       body:
         'A pointed satin slingback finished with a hand-folded bow and the BUKUR monogram. Floral-embroidered, quietly precise — the house’s defining silhouette.',
