@@ -1,11 +1,9 @@
 {
   "name": "bukur-ecommerce",
   "version": "1.0.0",
-  "description": "BUKUR Clothing Brand E-commerce Website",
+  "description": "BUKUR WORLD — luxury women's footwear e-commerce (React storefront + Express/PostgreSQL API)",
   "private": true,
   "dependencies": {
-    "@react-three/drei": "^9.122.0",
-    "@react-three/fiber": "^8.18.0",
     "aws4fetch": "1.0.20",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
@@ -19,8 +17,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.20.0",
-    "react-scripts": "5.0.1",
-    "three": "^0.169.0"
+    "react-scripts": "5.0.1"
   },
   "scripts": {
     "start": "react-scripts start",

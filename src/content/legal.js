@@ -12,17 +12,25 @@
 const company = 'BUKUR Group LLC';
 const place = 'Prishtina, Kosovo';
 const email = 'info@bukur.co';
+// CONFIGURATION REQUIRED before launch: fill these with the registered legal
+// entity details. Do not invent them. They surface in "Who we are" / "Contact".
+const registrationNumber = '[CONFIGURATION REQUIRED — business registration number]';
+const registeredAddress = '[CONFIGURATION REQUIRED — registered street address], Prishtina, Kosovo';
+// CONFIGURATION REQUIRED: confirm the production domain and the client-care
+// email once DNS is live (currently the site references bukurworldshop.com and
+// info@bukur.co — align these before launch).
 
 export const terms = {
   title: 'Terms & Conditions',
   updated: '8 September 2026',
   intro:
-    `These Terms & Conditions govern your use of bukurworld.com (the “Site”) and any purchase you make from BUKUR. The Site is operated by ${company}, ${place}. By browsing the Site or placing an order you accept these terms. If you do not agree with them, please do not use the Site.`,
+    `These Terms & Conditions govern your use of bukurworldshop.com (the “Site”) and any purchase you make from BUKUR. The Site is operated by ${company}, ${place}. By browsing the Site or placing an order you accept these terms. If you do not agree with them, please do not use the Site.`,
   sections: [
     {
       heading: '1. Who we are',
       body: [
-        `BUKUR is a luxury footwear house operated by ${company}, based in ${place}. You can reach our client care team at ${email}.`,
+        `BUKUR is a luxury footwear house operated by ${company}, based in ${place}.`,
+        `Registered office: ${registeredAddress}. Business registration number: ${registrationNumber}. You can reach our client care team at ${email}.`,
       ],
     },
     {
@@ -126,7 +134,7 @@ export const terms = {
     {
       heading: '17. Contact',
       body: [
-        `Questions about these terms can be sent to ${email}, or by post to ${company}, ${place}.`,
+        `Questions about these terms can be sent to ${email}, or by post to ${company}, ${registeredAddress}.`,
       ],
     },
   ],
@@ -136,7 +144,7 @@ export const privacy = {
   title: 'Privacy Policy',
   updated: '8 September 2026',
   intro:
-    `This Privacy Policy explains how ${company} (“BUKUR”, “we”), ${place}, collects and uses your personal data when you visit bukurworld.com or place an order, and the rights you have. For any privacy question, contact us at ${email}.`,
+    `This Privacy Policy explains how ${company} (“BUKUR”, “we”), ${place}, collects and uses your personal data when you visit bukurworldshop.com or place an order, and the rights you have. For any privacy question, contact us at ${email}.`,
   sections: [
     {
       heading: '1. Who is responsible for your data',
@@ -234,7 +242,7 @@ export const cookies = {
   title: 'Cookies Policy',
   updated: '8 September 2026',
   intro:
-    `This Cookies Policy explains the cookies and similar technologies used on bukurworld.com, operated by ${company}, ${place}. It should be read together with our Privacy Policy.`,
+    `This Cookies Policy explains the cookies and similar technologies used on bukurworldshop.com, operated by ${company}, ${place}. It should be read together with our Privacy Policy.`,
   sections: [
     {
       heading: '1. What these technologies are',

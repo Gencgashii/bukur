@@ -1,0 +1,8 @@
+# BUKUR WORLD
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /checkout
+Disallow: /cart
+
+Sitemap: https://bukurworldshop.com/sitemap.xml

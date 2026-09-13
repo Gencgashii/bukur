@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import useFocusTrap from '../hooks/useFocusTrap';
 import Img from './Img';
 import './ProductGallery.css';
 
@@ -10,6 +11,9 @@ const ProductGallery = ({ images = [], alt = '' }) => {
   const [active, setActive] = useState(0);
   const [lightbox, setLightbox] = useState(-1);
   const trackRef = useRef(null);
+  const lbRef = useRef(null);
+
+  useFocusTrap({ active: lightbox >= 0, ref: lbRef, onEscape: () => setLightbox(-1) });
 
   useEffect(() => {
     if (lightbox < 0) return undefined;
@@ -74,7 +78,15 @@ const ProductGallery = ({ images = [], alt = '' }) => {
       </div>
 
       {lightbox >= 0 && createPortal(
-        <div className="gal-lb" onClick={() => setLightbox(-1)}>
+        <div
+          className="gal-lb"
+          onClick={() => setLightbox(-1)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${alt} — enlarged image ${lightbox + 1} of ${list.length}`}
+          tabIndex={-1}
+          ref={lbRef}
+        >
           <button className="gal-lb__close" onClick={() => setLightbox(-1)} aria-label="Close">Close</button>
           <Img
             src={list[lightbox]}

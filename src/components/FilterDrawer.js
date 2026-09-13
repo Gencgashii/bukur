@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
+import useFocusTrap from '../hooks/useFocusTrap';
 import './FilterDrawer.css';
 
 const FilterDrawer = ({
@@ -11,6 +12,9 @@ const FilterDrawer = ({
   onReset,
   resultCount,
 }) => {
+  const panelRef = useRef(null);
+  useFocusTrap({ active: open, ref: panelRef, onEscape: onClose });
+
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
@@ -26,7 +30,15 @@ const FilterDrawer = ({
   return (
     <>
       <div className={`fdrawer__scrim ${open ? 'is-open' : ''}`} onClick={onClose} aria-hidden="true" />
-      <aside className={`fdrawer ${open ? 'is-open' : ''}`} aria-label="Filter" aria-hidden={!open}>
+      <aside
+        className={`fdrawer ${open ? 'is-open' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Filter"
+        aria-hidden={!open}
+        tabIndex={-1}
+        ref={panelRef}
+      >
         <div className="fdrawer__head">
           <span className="u-fine">Filter</span>
           <button className="fdrawer__close" onClick={onClose} aria-label="Close filters">Close</button>

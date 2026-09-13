@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import useFocusTrap from '../hooks/useFocusTrap';
 import logo from '../assets/bukur-logo.png';
 import './Header.css';
 
@@ -22,6 +23,11 @@ const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [term, setTerm] = useState('');
+  const navRef = useRef(null);
+  const searchRef = useRef(null);
+
+  useFocusTrap({ active: menuOpen, ref: navRef, onEscape: () => setMenuOpen(false) });
+  useFocusTrap({ active: searchOpen, ref: searchRef, onEscape: () => setSearchOpen(false) });
 
   useEffect(() => {
     setSolid(!overHero);
@@ -89,7 +95,15 @@ const Header = () => {
       {createPortal(
         <>
           {/* mobile / full nav overlay */}
-          <div className={`overlay ${menuOpen ? 'is-open' : ''}`} aria-hidden={!menuOpen}>
+          <div
+            className={`overlay ${menuOpen ? 'is-open' : ''}`}
+            aria-hidden={!menuOpen}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menu"
+            tabIndex={-1}
+            ref={navRef}
+          >
             <div className="overlay__top">
               <span className="hdr__wordmark"><img src={logo} alt="BUKUR" className="hdr__logo" width="189" height="189" /></span>
               <button className="overlay__close" onClick={() => setMenuOpen(false)}>Close</button>
@@ -106,7 +120,15 @@ const Header = () => {
           </div>
 
           {/* search overlay */}
-          <div className={`overlay ${searchOpen ? 'is-open' : ''}`} aria-hidden={!searchOpen}>
+          <div
+            className={`overlay ${searchOpen ? 'is-open' : ''}`}
+            aria-hidden={!searchOpen}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Search"
+            tabIndex={-1}
+            ref={searchRef}
+          >
             <div className="overlay__top">
               <span className="u-fine">Search</span>
               <button className="overlay__close" onClick={() => setSearchOpen(false)}>Close</button>

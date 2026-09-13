@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useProducts } from '../context/ProductsContext';
-import usePageMeta from '../hooks/usePageMeta';
+import usePageMeta, { useJsonLd, SITE_ORIGIN } from '../hooks/usePageMeta';
+import { track } from '../lib/analytics';
 import ProductGallery from '../components/ProductGallery';
 import ProductGrid from '../components/ProductGrid';
 import PdpDrawer from '../components/PdpDrawer';
@@ -29,6 +30,34 @@ const ProductDetail = () => {
   const buyRef = useRef(null);
 
   usePageMeta(product ? product.name : 'Product', product ? product.description : undefined);
+
+  const jsonLd = useMemo(() => {
+    if (!product) return null;
+    const abs = (u) => (typeof u === 'string' && /^https?:\/\//.test(u) ? u : `${SITE_ORIGIN}${u || ''}`);
+    const priceEuros = product.priceCents != null ? product.priceCents / 100 : Number(product.price || 0);
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: product.name,
+      ...(product.description ? { description: product.description } : {}),
+      image: (product.images && product.images.length ? product.images : [product.image]).filter(Boolean).map(abs),
+      ...(product.sku ? { sku: product.sku } : {}),
+      brand: { '@type': 'Brand', name: 'BUKUR WORLD' },
+      offers: {
+        '@type': 'Offer',
+        url: `${SITE_ORIGIN}/product/${product.id}`,
+        priceCurrency: 'EUR',
+        price: priceEuros.toFixed(2),
+        availability:
+          product.inStock === false ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
+      },
+    };
+  }, [product]);
+  useJsonLd(jsonLd);
+
+  useEffect(() => {
+    if (product) track('view_product', { id: product.id, name: product.name, price: product.price });
+  }, [product]);
 
   useEffect(() => {
     const el = buyRef.current;
@@ -75,6 +104,7 @@ const ProductDetail = () => {
     if (needsSize && !size) { setSizeError(true); return; }
     setSizeError(false);
     addToCart(product, needsSize ? size : '', qty);
+    track('add_to_cart', { id: product.id, name: product.name, size: needsSize ? size : '', quantity: qty, price: product.price });
     setAdded(true);
     setTimeout(() => setAdded(false), 3500);
   };

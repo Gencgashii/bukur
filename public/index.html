@@ -2,14 +2,18 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#171412" />
+    <meta name="robots" content="index, follow" />
     <meta
       name="description"
       content="BUKUR WORLD — sculptural heels, designed in Prishtina. Slingbacks, pumps, sandals and statement heels."
     />
+    <!-- Canonical + og:url are updated per route by src/hooks/usePageMeta.js -->
+    <link rel="canonical" href="https://bukurworldshop.com/" />
     <link rel="icon" type="image/png" href="/BB-logo-favicon.png" />
     <link rel="apple-touch-icon" href="/BB-logo-favicon.png" />
+    <link rel="manifest" href="/manifest.json" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -18,14 +22,55 @@
     />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="BUKUR WORLD" />
+    <meta property="og:url" content="https://bukurworldshop.com/" />
     <meta property="og:title" content="BUKUR WORLD — Luxury Heels, Designed in Prishtina" />
     <meta
       property="og:description"
       content="Sculptural heels for the moments worth remembering. Discover the collection."
     />
-    <meta property="og:image" content="/media/campaign-spotlight.jpg" />
+    <meta property="og:image" content="https://bukurworldshop.com/media/campaign-spotlight.jpg" />
+    <meta property="og:image:width" content="1600" />
+    <meta property="og:image:height" content="2000" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="BUKUR WORLD — Luxury Heels, Designed in Prishtina" />
+    <meta
+      name="twitter:description"
+      content="Sculptural heels for the moments worth remembering. Discover the collection."
+    />
+    <meta name="twitter:image" content="https://bukurworldshop.com/media/campaign-spotlight.jpg" />
     <title>BUKUR WORLD — Luxury Heels, Designed in Prishtina</title>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://bukurworldshop.com/#organization",
+            "name": "BUKUR WORLD",
+            "legalName": "BUKUR Group LLC",
+            "url": "https://bukurworldshop.com/",
+            "logo": "https://bukurworldshop.com/BB-logo-favicon.png",
+            "sameAs": [
+              "https://www.instagram.com/bukurworld/",
+              "https://www.tiktok.com/@bukur.world",
+              "https://www.facebook.com/bukurworld/"
+            ]
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://bukurworldshop.com/#website",
+            "url": "https://bukurworldshop.com/",
+            "name": "BUKUR WORLD",
+            "publisher": { "@id": "https://bukurworldshop.com/#organization" },
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://bukurworldshop.com/products?q={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to view the BUKUR WORLD store.</noscript>

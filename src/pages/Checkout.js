@@ -1,12 +1,12 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useOrders } from '../context/OrdersContext';
 import usePageMeta from '../hooks/usePageMeta';
+import { track } from '../lib/analytics';
 import Img from '../components/Img';
 import logo from '../assets/bukur-logo.png';
 import {
-  API_URL,
   BANK_DETAILS,
   PAYMENT_METHODS,
   SHIPPING_COUNTRIES,
@@ -15,6 +15,25 @@ import {
 import './Checkout.css';
 
 const money = (cents) => `€${(Number(cents || 0) / 100).toFixed(2)}`;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const PHONE_RE = /^[+()\-\s0-9]{6,20}$/;
+
+const hasBankDetails = Boolean(BANK_DETAILS.holder && BANK_DETAILS.iban);
+
+// Only payment methods that can actually be completed today. Online card
+// (card_teb) is intentionally omitted — see server/payments/providers/teb.js.
+const PAYMENT_OPTIONS = [
+  {
+    value: PAYMENT_METHODS.BANK_TRANSFER,
+    label: 'Bank transfer',
+    hint: 'Account details and a payment reference are shown after you place the order.',
+  },
+  {
+    value: PAYMENT_METHODS.CASH_ON_DELIVERY,
+    label: 'Cash on delivery',
+    hint: 'Pay the courier when your order arrives.',
+  },
+];
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -41,14 +60,53 @@ const Checkout = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderResult, setOrderResult] = useState(null);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [touched, setTouched] = useState({});
   const idempotencyKeyRef = useRef(null);
 
-  // Pre-submit ESTIMATE only. The backend returns the authoritative total.
-  const shippingEstCents = shippingEstimateCents(formData.country);
-  const subtotalEst = getCartTotal();
-  const grandTotalEst = subtotalEst + shippingEstCents / 100;
+  // Server is authoritative for the final total. Tax is 0 and shipping is a flat
+  // per-country rate the client also knows, so the figure below matches the
+  // server's — it is shown as the Total, not an "estimate".
+  const shippingCents = shippingEstimateCents(formData.country);
+  const subtotal = getCartTotal();
+  const grandTotal = subtotal + shippingCents / 100;
   const countryLabel =
     SHIPPING_COUNTRIES.find((c) => c.code === formData.country)?.label || formData.country;
+
+  useEffect(() => {
+    if (cartItems.length) {
+      track('begin_checkout', {
+        items: cartItems.map((i) => ({ id: i.id, quantity: i.quantity, price: i.price, size: i.size })),
+        value: subtotal,
+      });
+    }
+    // once, on entering checkout with a non-empty bag
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const requiredFields = useMemo(
+    () => ['firstName', 'lastName', 'address', 'city', 'postalCode', 'email', 'phone'],
+    []
+  );
+
+  const validateField = (name, value) => {
+    const v = (value ?? '').trim();
+    if (requiredFields.includes(name) && !v) {
+      return `${labelFor(name)} is required.`;
+    }
+    if (name === 'email' && v && !EMAIL_RE.test(v)) return 'Enter a valid email address.';
+    if (name === 'phone' && v && !PHONE_RE.test(v)) return 'Enter a valid phone number.';
+    return '';
+  };
+
+  const validateAll = () => {
+    const next = {};
+    requiredFields.forEach((f) => {
+      const msg = validateField(f, formData[f]);
+      if (msg) next[f] = msg;
+    });
+    return next;
+  };
 
   if (cartItems.length === 0 && !orderResult) {
     return (
@@ -70,31 +128,33 @@ const Checkout = () => {
   }
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData((f) => ({ ...f, [name]: value }));
+    if (touched[name]) {
+      setFieldErrors((fe) => ({ ...fe, [name]: validateField(name, value) }));
+    }
   };
 
-  const initiatePayment = async (orderId) => {
-    const res = await fetch(`${API_URL.replace(/\/$/, '')}/store/custom/payments/initiate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Idempotency-Key': `${idempotencyKeyRef.current}:pay`,
-      },
-      body: JSON.stringify({ orderId }),
-    });
-    const data = await res.json().catch(() => null);
-    if (!res.ok) {
-      const err = new Error(data?.error?.message || 'Online payment could not be started.');
-      err.code = data?.error?.code;
-      err.status = res.status;
-      throw err;
-    }
-    return data;
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    setTouched((t) => ({ ...t, [name]: true }));
+    setFieldErrors((fe) => ({ ...fe, [name]: validateField(name, value) }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isSubmitting) return; // guard double-submit / double-click
+
+    const errs = validateAll();
+    setFieldErrors(errs);
+    setTouched(Object.fromEntries(requiredFields.map((f) => [f, true])));
+    if (Object.keys(errs).length) {
+      setError('Please check the highlighted fields.');
+      const first = document.querySelector('[aria-invalid="true"]');
+      if (first) first.focus();
+      return;
+    }
+
     setError('');
     setIsSubmitting(true);
 
@@ -119,39 +179,37 @@ const Checkout = () => {
           postalCode: formData.postalCode,
         },
         items: cartItems.map((i) => ({ id: i.id, size: i.size, quantity: i.quantity })),
-        total: grandTotalEst, // informational only; server recalculates
+        total: grandTotal, // informational only; server recalculates
       };
 
       const created = await addOrder(payload, { idempotencyKey: idempotencyKeyRef.current });
 
-      let payment = null;
-      let paymentNotice = '';
-      if (created.requiresPayment) {
-        try {
-          payment = await initiatePayment(created.orderId);
-          if (payment?.redirectUrl) {
-            paymentNotice = 'Your order is placed. Continue to the secure payment page to complete payment.';
-          }
-        } catch (payErr) {
-          paymentNotice =
-            payErr.status === 501
-              ? 'Your order is placed. Online card payment is not available yet — we will email you secure payment instructions.'
-              : `Your order is placed, but online payment could not start: ${payErr.message}`;
-        }
-      }
+      track('purchase', {
+        transaction_id: created.orderNumber || created.orderId,
+        value: (created.totals?.totalCents ?? Math.round(grandTotal * 100)) / 100,
+        shipping: (created.totals?.shippingCents ?? shippingCents) / 100,
+        payment_method: created.paymentMethod,
+      });
+
+      try {
+        localStorage.setItem('bukur-ship-country', formData.country);
+      } catch { /* ignore */ }
 
       clearCart();
-      setOrderResult({ order: created, payment, paymentNotice });
+      setOrderResult({ order: created });
     } catch (submitErr) {
       // No fake success. Cart is preserved. Customer sees the real reason.
-      setError(submitErr.message || 'Your order could not be placed. Please try again.');
+      setError(
+        submitErr.message ||
+          'Your order could not be placed and no payment was taken. Please review your details and try again.'
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
   if (orderResult) {
-    const { order, paymentNotice } = orderResult;
+    const { order } = orderResult;
     const totals = order.totals || {};
     const isBankTransfer = order.paymentMethod === PAYMENT_METHODS.BANK_TRANSFER;
     return (
@@ -164,11 +222,16 @@ const Checkout = () => {
         <div className="co__done container container--narrow">
           <p className="u-eyebrow">Thank you</p>
           <h1 className="u-display u-display--light">Order placed</h1>
-          <p className="co__ref">Reference <strong>{order.orderNumber || order.id}</strong> · Payment status: <strong>{order.paymentStatus}</strong></p>
+          <p className="co__ref">
+            Reference <strong>{order.orderNumber || order.id}</strong> · Payment status:{' '}
+            <strong>{order.paymentStatus}</strong>
+          </p>
+          <p className="co__ref">A confirmation has been sent to your email.</p>
 
           <div className="co__done-totals">
             <div><span>Subtotal</span><span>{money(totals.subtotalCents)}</span></div>
             <div><span>Shipping</span><span>{money(totals.shippingCents)}</span></div>
+            {totals.discountCents ? <div><span>Discount</span><span>−{money(totals.discountCents)}</span></div> : null}
             {totals.taxCents ? <div><span>Tax</span><span>{money(totals.taxCents)}</span></div> : null}
             <div className="co__done-total"><span>Total</span><span>{money(totals.totalCents)}</span></div>
           </div>
@@ -176,16 +239,23 @@ const Checkout = () => {
           {isBankTransfer && (
             <div className="co__bank">
               <p className="u-fine">Bank transfer instructions</p>
-              <p>Account holder: {BANK_DETAILS.holder}</p>
-              <p>IBAN: {BANK_DETAILS.iban}</p>
-              <p>Bank: {BANK_DETAILS.bank}{BANK_DETAILS.swift ? ` · SWIFT ${BANK_DETAILS.swift}` : ''}</p>
-              <p>Amount: {money(totals.totalCents)}</p>
-              <p>Payment reference: <strong>{order.orderNumber || order.id}</strong></p>
-              <p className="u-muted">Your order ships once we confirm the transfer.</p>
+              {hasBankDetails ? (
+                <>
+                  <p>Account holder: {BANK_DETAILS.holder}</p>
+                  <p>IBAN: {BANK_DETAILS.iban}</p>
+                  <p>Bank: {BANK_DETAILS.bank}{BANK_DETAILS.swift ? ` · SWIFT ${BANK_DETAILS.swift}` : ''}</p>
+                  <p>Amount: {money(totals.totalCents)}</p>
+                  <p>Payment reference: <strong>{order.orderNumber || order.id}</strong></p>
+                  <p className="u-muted">Your order ships once we confirm the transfer.</p>
+                </>
+              ) : (
+                <p className="u-muted">
+                  We will email you the bank account details and a payment reference. Your order
+                  ships once we confirm the transfer.
+                </p>
+              )}
             </div>
           )}
-
-          {paymentNotice && <p className="co__notice">{paymentNotice}</p>}
 
           <button className="btn btn--ghost" style={{ marginTop: '2rem' }} onClick={() => navigate('/')}>
             Continue shopping
@@ -194,6 +264,21 @@ const Checkout = () => {
       </div>
     );
   }
+
+  const fieldProps = (name, extra = {}) => ({
+    name,
+    value: formData[name],
+    onChange: handleChange,
+    onBlur: handleBlur,
+    'aria-invalid': fieldErrors[name] ? 'true' : undefined,
+    'aria-describedby': fieldErrors[name] ? `${name}-err` : undefined,
+    ...extra,
+  });
+
+  const FieldError = ({ name }) =>
+    fieldErrors[name] ? (
+      <span className="co__field-err" id={`${name}-err`} role="alert">{fieldErrors[name]}</span>
+    ) : null;
 
   return (
     <div className="co">
@@ -205,17 +290,17 @@ const Checkout = () => {
 
       <div className="co__grid container">
         <div className="co__main">
-          <form className="co__form" onSubmit={handleSubmit}>
+          <form className="co__form" onSubmit={handleSubmit} noValidate>
             <section className="co__step">
               <h2 className="co__step-title"><span className="co__step-num">01</span> Shipping</h2>
 
-              <div className="co__radios">
+              <div className="co__radios" role="radiogroup" aria-label="Delivery method">
                 <label className="co__radio">
-                  <input type="radio" value="home" checked={deliveryMethod === 'home'} onChange={() => setDeliveryMethod('home')} />
+                  <input type="radio" name="deliveryMethod" value="home" checked={deliveryMethod === 'home'} onChange={() => setDeliveryMethod('home')} />
                   <span>Home delivery<small>1–3 business days</small></span>
                 </label>
                 <label className="co__radio">
-                  <input type="radio" value="store" checked={deliveryMethod === 'store'} onChange={() => setDeliveryMethod('store')} />
+                  <input type="radio" name="deliveryMethod" value="store" checked={deliveryMethod === 'store'} onChange={() => setDeliveryMethod('store')} />
                   <span>Collect in studio<small>Prishtina</small></span>
                 </label>
               </div>
@@ -223,29 +308,34 @@ const Checkout = () => {
               <div className="co__fields">
                 <div className="co__row">
                   <label className="co__field">First name*
-                    <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} required />
+                    <input type="text" autoComplete="given-name" {...fieldProps('firstName')} required />
+                    <FieldError name="firstName" />
                   </label>
                   <label className="co__field">Last name*
-                    <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} required />
+                    <input type="text" autoComplete="family-name" {...fieldProps('lastName')} required />
+                    <FieldError name="lastName" />
                   </label>
                 </div>
                 <label className="co__field">Address*
-                  <input type="text" name="address" placeholder="Street and number" value={formData.address} onChange={handleChange} required />
+                  <input type="text" autoComplete="street-address" placeholder="Street and number" {...fieldProps('address')} required />
+                  <FieldError name="address" />
                 </label>
                 <label className="co__field">Country*
-                  <select name="country" value={formData.country} onChange={handleChange} required>
+                  <select autoComplete="country" {...fieldProps('country')} required>
                     {SHIPPING_COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
                   </select>
                 </label>
                 <div className="co__row co__row--3">
                   <label className="co__field">City*
-                    <input type="text" name="city" value={formData.city} onChange={handleChange} required />
+                    <input type="text" autoComplete="address-level2" {...fieldProps('city')} required />
+                    <FieldError name="city" />
                   </label>
                   <label className="co__field">State / region
-                    <input type="text" name="state" value={formData.state} onChange={handleChange} />
+                    <input type="text" autoComplete="address-level1" {...fieldProps('state')} />
                   </label>
                   <label className="co__field">Postal code*
-                    <input type="text" name="postalCode" value={formData.postalCode} onChange={handleChange} required />
+                    <input type="text" inputMode="text" autoComplete="postal-code" {...fieldProps('postalCode')} required />
+                    <FieldError name="postalCode" />
                   </label>
                 </div>
               </div>
@@ -256,40 +346,45 @@ const Checkout = () => {
               <div className="co__fields">
                 <div className="co__row">
                   <label className="co__field">Email*
-                    <input type="email" name="email" value={formData.email} onChange={handleChange} required />
+                    <input type="email" inputMode="email" autoComplete="email" {...fieldProps('email')} required />
+                    <FieldError name="email" />
                   </label>
                   <label className="co__field">Phone*
-                    <input type="tel" name="phone" value={formData.phone} onChange={handleChange} required />
+                    <input type="tel" inputMode="tel" autoComplete="tel" {...fieldProps('phone')} required />
+                    <FieldError name="phone" />
                   </label>
                 </div>
 
                 <p className="co__label">Payment method</p>
-                <div className="co__radios co__radios--stack">
-                  <label className="co__radio">
-                    <input type="radio" name="paymentMethod" value={PAYMENT_METHODS.BANK_TRANSFER} checked={formData.paymentMethod === PAYMENT_METHODS.BANK_TRANSFER} onChange={handleChange} />
-                    <span>Bank transfer<small>IBAN details shown after you place the order</small></span>
-                  </label>
-                  <label className="co__radio">
-                    <input type="radio" name="paymentMethod" value={PAYMENT_METHODS.CASH_ON_DELIVERY} checked={formData.paymentMethod === PAYMENT_METHODS.CASH_ON_DELIVERY} onChange={handleChange} />
-                    <span>Cash on delivery<small>Pay the courier on arrival</small></span>
-                  </label>
-                  <label className="co__radio">
-                    <input type="radio" name="paymentMethod" value={PAYMENT_METHODS.CARD_TEB} checked={formData.paymentMethod === PAYMENT_METHODS.CARD_TEB} onChange={handleChange} />
-                    <span>Card (online)<small>Secure card payment — coming soon</small></span>
-                  </label>
+                <div className="co__radios co__radios--stack" role="radiogroup" aria-label="Payment method">
+                  {PAYMENT_OPTIONS.map((opt) => (
+                    <label className="co__radio" key={opt.value}>
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value={opt.value}
+                        checked={formData.paymentMethod === opt.value}
+                        onChange={handleChange}
+                      />
+                      <span>{opt.label}<small>{opt.hint}</small></span>
+                    </label>
+                  ))}
                 </div>
+                <p className="co__paynote">
+                  BUKUR never takes card details on this site. Secure online card payment is coming soon.
+                </p>
               </div>
             </section>
 
             {error && <div className="co__error" role="alert">{error}</div>}
 
             <button type="submit" className="btn btn--block" disabled={isSubmitting}>
-              {isSubmitting ? 'Processing…' : `Place order — ${money(Math.round(grandTotalEst * 100))} (est.)`}
+              {isSubmitting ? 'Placing your order…' : `Place order · ${money(Math.round(grandTotal * 100))}`}
             </button>
           </form>
         </div>
 
-        <aside className="co__summary">
+        <aside className="co__summary" aria-label="Order summary">
           <div className="co__sum-head">
             <h2 className="co__sum-title">Order summary</h2>
             <span className="co__sum-count">{cartItems.length} {cartItems.length === 1 ? 'item' : 'items'}</span>
@@ -309,12 +404,12 @@ const Checkout = () => {
             ))}
           </ul>
           <div className="co__sum-totals">
-            <div><span>Subtotal</span><span>€{subtotalEst.toFixed(2)}</span></div>
-            <div><span>Shipping ({countryLabel})</span><span>{shippingEstCents > 0 ? money(shippingEstCents) : 'Free'}</span></div>
-            <div className="co__sum-grand"><span>Estimated total</span><span>€{grandTotalEst.toFixed(2)}</span></div>
+            <div><span>Subtotal</span><span>€{subtotal.toFixed(2)}</span></div>
+            <div><span>Shipping ({countryLabel})</span><span>{shippingCents > 0 ? money(shippingCents) : 'Free'}</span></div>
+            <div className="co__sum-grand"><span>Total</span><span>€{grandTotal.toFixed(2)}</span></div>
           </div>
           <ul className="co__assure">
-            <li>Final total confirmed when your order is placed</li>
+            <li>Prices in EUR. Shipping is the flat rate for your country.</li>
             <li>Complimentary delivery across Kosovo &amp; the region</li>
             <li>14-day returns</li>
           </ul>
@@ -323,5 +418,17 @@ const Checkout = () => {
     </div>
   );
 };
+
+function labelFor(name) {
+  return {
+    firstName: 'First name',
+    lastName: 'Last name',
+    address: 'Address',
+    city: 'City',
+    postalCode: 'Postal code',
+    email: 'Email',
+    phone: 'Phone',
+  }[name] || name;
+}
 
 export default Checkout;

@@ -40,12 +40,15 @@ services:
       - key: JWT_SECRET
         generateValue: true
       # REQUIRED: comma-separated allowed browser origin(s), no trailing slash.
-      # Include BOTH the storefront and the admin dashboard origins,
-      # e.g. https://bukurworld.com,https://www.bukurworld.com,https://admin.bukurworld.com
+      # Production storefront hosts (admin is the /admin route on the same origin):
+      #   https://bukurworldshop.com,https://www.bukurworldshop.com
+      # Never use "*", "localhost" or "127.0.0.1".
       - key: CLIENT_ORIGINS
         sync: false
-      # If the admin dashboard is hosted on a DIFFERENT domain than this API,
-      # set this to "none" (cookies are already Secure in production).
+      # bukurworldshop.com, www.bukurworldshop.com and api.bukurworldshop.com are
+      # all subdomains of one registrable domain => storefront->API requests are
+      # SAME-SITE. Keep "lax". Only use "none" if the admin dashboard ever moves
+      # to a different registrable domain than this API.
       - key: ADMIN_COOKIE_SAMESITE
         value: "lax"
       # Media storage for ADMIN-UPLOADED images only (storefront photography is
@@ -58,7 +61,8 @@ services:
       - key: STORAGE_DRIVER
         value: "local"
       # Public read base for stored objects (no trailing slash). e.g.
-      # https://img.bukurworld.com  or  https://<bucket>.s3.<region>.amazonaws.com
+      # https://media.bukurworldshop.com  (custom domain on the R2/S3 bucket)
+      # or the provider-native public URL: https://<bucket>.<region>.r2.cloudflarestorage.com
       - key: S3_PUBLIC_BASE_URL
         sync: false
       - key: S3_BUCKET
@@ -121,7 +125,8 @@ services:
   # Vercel: framework "Create React App" (auto), build `npm run build`,
   # output `build/`, SPA rewrite -> /index.html (see vercel.json).
   # Set these in the Vercel project (Production env):
-  #   REACT_APP_API_URL        = https://<this API service>.onrender.com
+  #   REACT_APP_API_URL        = https://api.bukurworldshop.com
+  #   (point api.bukurworldshop.com at this Render service as a custom domain)
   #   REACT_APP_BANK_HOLDER / _IBAN / _NAME / _SWIFT   (public checkout copy)
   #   GENERATE_SOURCEMAP=false   DISABLE_ESLINT_PLUGIN=true
   # `scripts/check-frontend-env.js` (npm prebuild) fails the Vercel build if

@@ -5,10 +5,13 @@ export const API_URL =
   process.env.REACT_APP_API_URL ||
   (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:9000');
 
+// Real values come from REACT_APP_BANK_* at build time (set in Vercel). No
+// placeholder fallbacks — if they are unset, checkout tells the customer the
+// details will be emailed instead of showing a fake IBAN.
 export const BANK_DETAILS = {
-  holder: process.env.REACT_APP_BANK_HOLDER || 'BUKUR',
-  iban: process.env.REACT_APP_BANK_IBAN || 'XK00 0000 0000 0000 0000',
-  bank: process.env.REACT_APP_BANK_NAME || 'Raiffeisen Bank',
+  holder: process.env.REACT_APP_BANK_HOLDER || '',
+  iban: process.env.REACT_APP_BANK_IBAN || '',
+  bank: process.env.REACT_APP_BANK_NAME || '',
   swift: process.env.REACT_APP_BANK_SWIFT || '',
 };
 

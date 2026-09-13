@@ -115,6 +115,20 @@
 }
 .co__field input::placeholder { color: var(--muted); opacity: 0.7; }
 .co__field input:focus, .co__field select:focus { outline: 0; border-bottom-color: var(--ink); }
+.co__field input[aria-invalid='true'], .co__field select[aria-invalid='true'] { border-bottom-color: #b42318; }
+.co__field-err {
+  font-size: 0.66rem;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: #b42318;
+  margin-top: -0.15rem;
+}
+.co__paynote {
+  font-size: 0.66rem;
+  line-height: 1.7;
+  color: var(--muted);
+  letter-spacing: 0.01em;
+}
 
 .co__error {
   border: 1px solid var(--hairline);

@@ -10,7 +10,9 @@
   /* ---- palette -------------------------------------------------------- */
   --ink: #171412;
   --ink-soft: #3a352f;
-  --muted: #857c71;
+  /* secondary text — darkened to clear WCAG AA (≈4.6:1 on --paper) while
+     staying clearly quieter than --ink */
+  --muted: #6f675c;
   --line: rgba(23, 20, 18, 0.14);
   --line-soft: rgba(23, 20, 18, 0.08);
   --hairline: rgba(23, 20, 18, 0.22);
@@ -133,6 +135,23 @@ button { font-family: inherit; color: inherit; }
   outline-offset: 3px;
   border-radius: 1px;
 }
+
+/* skip-to-content — visually hidden until focused */
+.skip-link {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: var(--z-modal);
+  transform: translateY(-120%);
+  background: var(--ink);
+  color: var(--on-dark);
+  padding: 0.75rem 1.25rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  transition: transform var(--dur-sm) var(--ease);
+}
+.skip-link:focus-visible { transform: translateY(0); }
 
 /* ---- typographic primitives ------------------------------------------------ */
 .u-eyebrow {

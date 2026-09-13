@@ -84,7 +84,7 @@
 
 .pd__buy { margin-top: 1.9rem; display: flex; gap: 0.6rem; align-items: stretch; }
 .pd__qty { display: flex; align-items: center; border: 1px solid var(--hairline); }
-.pd__qty button { width: 2.6rem; height: 100%; background: none; border: 0; font-size: 1rem; cursor: pointer; color: var(--ink); }
+.pd__qty button { min-width: 2.9rem; min-height: 2.9rem; height: 100%; background: none; border: 0; font-size: 1rem; cursor: pointer; color: var(--ink); }
 .pd__qty span { min-width: 1.9rem; text-align: center; font-size: 0.82rem; font-variant-numeric: tabular-nums; }
 .pd__buy .btn { flex: 1; letter-spacing: 0.2em; }
 

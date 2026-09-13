@@ -1,0 +1,13 @@
+{
+  "name": "BUKUR WORLD",
+  "short_name": "BUKUR",
+  "description": "Sculptural heels, designed in Prishtina.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fefcf7",
+  "theme_color": "#171412",
+  "icons": [
+    { "src": "/BB-logo-favicon.png", "sizes": "189x189", "type": "image/png", "purpose": "any" }
+  ]
+}
