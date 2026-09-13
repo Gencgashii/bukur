@@ -28,10 +28,12 @@ const Footer = () => {
         <nav className="ft__col" aria-label="Shop">
           <h4>Shop</h4>
           <Link to="/products">All heels</Link>
-          <Link to="/products?category=Slingbacks">Slingbacks</Link>
-          <Link to="/products?category=Pumps">Pumps</Link>
-          <Link to="/products?category=Sandals">Sandals</Link>
-          <Link to="/products?category=Statement">Statement</Link>
+          <Link to="/products?category=All%20eyes%20on%20me">All eyes on me</Link>
+          <Link to="/products?category=Diva">Diva</Link>
+          <Link to="/products?category=Icon">Icon</Link>
+          <Link to="/products?category=Aura">Aura</Link>
+          <Link to="/products?category=Timeless">Timeless</Link>
+          <Link to="/products">&amp; more</Link>
         </nav>
 
         <nav className="ft__col" aria-label="The house">
