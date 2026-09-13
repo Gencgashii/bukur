@@ -19,7 +19,7 @@ export const contactInfo = {
     {
       label: 'Studio',
       value: 'Prishtina, Kosovo',
-      note: 'BUKUR Group LLC. Visits by appointment.',
+      note: 'Bukur World SH.P.K. Visits by appointment.',
     },
   ],
 

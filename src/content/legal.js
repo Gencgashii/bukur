@@ -9,13 +9,13 @@
  * operates. Have it reviewed by legal counsel before relying on it.
  */
 
-const company = 'BUKUR Group LLC';
+const company = 'Bukur World SH.P.K.';
 const place = 'Prishtina, Kosovo';
 const email = 'info@bukur.co';
-// CONFIGURATION REQUIRED before launch: fill these with the registered legal
-// entity details. Do not invent them. They surface in "Who we are" / "Contact".
-const registrationNumber = '[CONFIGURATION REQUIRED — business registration number]';
-const registeredAddress = '[CONFIGURATION REQUIRED — registered street address], Prishtina, Kosovo';
+// Registered legal entity details, per the ARBK (Kosovo Business Registration
+// Agency) filing.
+const registrationNumber = '812146662';
+const registeredAddress = 'Autostrada Prishtinë-Ferizaj, KM2, Graçanicë, Kosovo';
 // CONFIGURATION REQUIRED: confirm the production domain and the client-care
 // email once DNS is live (currently the site references bukurworldshop.com and
 // info@bukur.co — align these before launch).
