@@ -9,7 +9,7 @@
  * operates. Have it reviewed by legal counsel before relying on it.
  */
 
-const company = 'Bukur World SH.P.K.';
+const company = 'Bukur World SHPK';
 const place = 'Prishtina, Kosovo';
 const email = 'info@bukur.co';
 // Registered legal entity details, per the ARBK (Kosovo Business Registration

@@ -66,7 +66,7 @@ const Footer = () => {
       </div>
 
       <div className="ft__legal">
-        <span>© {new Date().getFullYear()} Bukur World SH.P.K. · Prishtina, Kosovo</span>
+        <span>© {new Date().getFullYear()} Bukur World SHPK · Prishtina, Kosovo</span>
         <Link to="/terms">Terms &amp; Conditions</Link>
         <Link to="/privacy">Privacy Policy</Link>
         <Link to="/cookies">Cookies Policy</Link>
