@@ -41,7 +41,7 @@ export const homeContent = {
     },
     {
       id: 'statement',
-      eyebrow: 'Statement',
+      eyebrow: 'Timeless',
       title: 'Sculpture for the foot.',
       body:
         'Draped tulle set on the openwork BUKUR heel. An evening shoe built like an object — meant to be looked at twice.',
