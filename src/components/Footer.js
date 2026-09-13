@@ -42,6 +42,7 @@ const Footer = () => {
           <Link to="/products?sort=new">New arrivals</Link>
           <Link to="/faq">FAQ</Link>
           <Link to="/contact">Contact</Link>
+          <a href="https://maps.app.goo.gl/NZVCy4UiGQJqUQ3u9" target="_blank" rel="noopener noreferrer">Locator</a>
         </nav>
 
         <nav className="ft__col" aria-label="Connect">
