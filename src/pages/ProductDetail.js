@@ -67,6 +67,7 @@ const ProductDetail = () => {
   const [size, setSize] = useState('');
   const [qty, setQty] = useState(1);
   const [sizeError, setSizeError] = useState(false);
+  const [sizeErrorPulse, setSizeErrorPulse] = useState(0);
   const [added, setAdded] = useState(false);
   const [showSticky, setShowSticky] = useState(false);
   const [drawer, setDrawer] = useState(null); // 'details' | 'sizing' | 'shipping'
@@ -144,7 +145,11 @@ const ProductDetail = () => {
   const soldOut = product.inStock === false;
 
   const handleAdd = () => {
-    if (needsSize && !size) { setSizeError(true); return; }
+    if (needsSize && !size) {
+      setSizeError(true);
+      setSizeErrorPulse((n) => n + 1);
+      return;
+    }
     setSizeError(false);
     addToCart(product, needsSize ? size : '', qty);
     track('add_to_cart', { id: product.id, name: product.name, size: needsSize ? size : '', quantity: qty, price: product.price });
@@ -182,7 +187,7 @@ const ProductDetail = () => {
                   <span className="u-fine">Size — EU</span>
                   <span className="u-fine u-muted">{soldOut ? 'Sold out' : 'In stock'}</span>
                 </div>
-                <div className="pd__size-row">
+                <div key={`row-${sizeErrorPulse}`} className={`pd__size-row ${sizeError ? 'is-error' : ''}`}>
                   {sizes.map((s) => (
                     <button
                       key={s}
@@ -195,7 +200,11 @@ const ProductDetail = () => {
                     </button>
                   ))}
                 </div>
-                <p className="pd__size-note" aria-live="polite">
+                <p
+                  key={`note-${sizeErrorPulse}`}
+                  className={`pd__size-note ${sizeError ? 'is-error' : ''}`}
+                  aria-live="polite"
+                >
                   {sizeError ? 'Please choose a size to continue.' : size ? `Selected — EU ${size}` : 'Select your size'}
                 </p>
               </div>
