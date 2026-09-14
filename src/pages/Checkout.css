@@ -117,11 +117,16 @@
 .co__field input:focus, .co__field select:focus { outline: 0; border-bottom-color: var(--ink); }
 .co__field input[aria-invalid='true'], .co__field select[aria-invalid='true'] { border-bottom-color: #b42318; }
 .co__field-err {
+  display: block;
   font-size: 0.66rem;
+  line-height: 1.4;
   letter-spacing: 0.02em;
   text-transform: none;
   color: #b42318;
   margin-top: -0.15rem;
+  /* Reserves its line's height whether or not there's text, so a field
+     showing/clearing a validation error never shifts the fields below it. */
+  min-height: calc(0.66rem * 1.4);
 }
 .co__paynote {
   font-size: 0.66rem;

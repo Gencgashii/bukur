@@ -275,10 +275,13 @@ const Checkout = () => {
     ...extra,
   });
 
-  const FieldError = ({ name }) =>
-    fieldErrors[name] ? (
-      <span className="co__field-err" id={`${name}-err`} role="alert">{fieldErrors[name]}</span>
-    ) : null;
+  // Always rendered (even with empty text) so its reserved height in
+  // .co__field never appears/disappears — otherwise every field below the
+  // one that just failed validation visibly jumps up or down as errors
+  // toggle. role="alert" still announces the text change when it fills in.
+  const FieldError = ({ name }) => (
+    <span className="co__field-err" id={`${name}-err`} role="alert">{fieldErrors[name] || ''}</span>
+  );
 
   return (
     <div className="co">

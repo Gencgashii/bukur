@@ -864,7 +864,7 @@ button, input, select, textarea { font-family: inherit; color: inherit; }
 .ft__col h4 { font-size: 0.62rem; letter-spacing: 0.24em; text-transform: uppercase; color: var(--on-dark-soft); margin-bottom: 1rem; }
 .ft__col a, .ft__col span { display: block; font-size: 0.82rem; line-height: 2.1; color: var(--on-dark); }
 .ft__col a:hover { color: var(--bronze); }
-.ft__news { grid-column: 1 / -1; margin-top: clamp(2rem, 4vw, 3rem); display: flex; gap: 1rem; align-items: center; border-top: 1px solid rgba(244, 239, 230, 0.14); padding-top: clamp(2rem, 4vw, 3rem); flex-wrap: wrap; }
+.ft__news { grid-column: 1 / -1; margin-top: clamp(1.25rem, 2.5vw, 2rem); display: flex; gap: 1rem; align-items: center; border-top: 1px solid rgba(244, 239, 230, 0.14); padding-top: clamp(1.25rem, 2.5vw, 2rem); flex-wrap: wrap; }
 .ft__news form {
   display: flex;
   flex: 1;
