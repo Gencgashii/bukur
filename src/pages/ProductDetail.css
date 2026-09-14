@@ -7,7 +7,7 @@
   grid-template-columns: 1fr 1fr;
   align-items: start;
 }
-.pd__gallery { position: relative; background: var(--bone); }
+.pd__gallery { position: relative; background: var(--surface); }
 .pd__info {
   position: relative;
   background: var(--paper);
@@ -140,7 +140,7 @@
   color: var(--ink);
   transition: color var(--dur-xs) var(--ease-out);
 }
-.pd__meta-row:hover { color: var(--bronze-deep); }
+.pd__meta-row:hover { color: var(--ink-soft); }
 .pd__meta-chevron { font-size: 0.85rem; color: var(--muted); }
 
 /* mobile sticky purchase bar */

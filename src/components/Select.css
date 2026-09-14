@@ -65,8 +65,8 @@
   cursor: pointer;
   transition: background var(--dur-xs) var(--ease-out), color var(--dur-xs) var(--ease-out);
 }
-.select__opt.is-active { background: var(--bone); }
-.select__opt.is-selected { color: var(--bronze-deep); font-weight: 500; }
+.select__opt.is-active { background: var(--surface); }
+.select__opt.is-selected { color: var(--ink); font-weight: 500; }
 
 @media (prefers-reduced-motion: reduce) {
   .select__panel { animation: none; }

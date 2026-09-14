@@ -17,7 +17,7 @@
   font-weight: 500;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--bronze-deep);
+  color: var(--muted);
   margin-bottom: 0.5rem;
 }
 
@@ -40,7 +40,7 @@
   line-height: 1.35;
   color: var(--ink);
 }
-.faq-item__q:hover { color: var(--bronze-deep); }
+.faq-item__q:hover { color: var(--ink-soft); }
 .faq-item__sign {
   flex: 0 0 auto;
   font-family: var(--sans);
