@@ -5,7 +5,7 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#fefcf7",
+  "background_color": "#f5f5f5",
   "theme_color": "#171412",
   "icons": [
     { "src": "/BB-logo-favicon.png", "sizes": "189x189", "type": "image/png", "purpose": "any" }
