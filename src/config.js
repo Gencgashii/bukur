@@ -24,10 +24,28 @@ export const PAYMENT_METHODS = {
 
 // Supported shipping destinations (structured — no free-text country matching).
 // These are for the pre-submit ESTIMATE only. The backend returns the
-// authoritative total on the order response.
+// authoritative total on the order response — it MUST list the same
+// countries at the same rates via its SHIPPING_RATES env var, or an order to
+// a country added here only will be rejected at submit. Sorted alphabetically
+// by label (shown in the checkout Country dropdown in this order).
+// USA and Canada are intentionally not listed yet — no shipping rate has
+// been set for them.
 export const SHIPPING_COUNTRIES = [
-  { code: 'XK', label: 'Kosovo', estimateCents: 180 },
   { code: 'AL', label: 'Albania', estimateCents: 480 },
+  { code: 'AT', label: 'Austria', estimateCents: 2000 },
+  { code: 'BE', label: 'Belgium', estimateCents: 2000 },
+  { code: 'BG', label: 'Bulgaria', estimateCents: 2000 },
+  { code: 'HR', label: 'Croatia', estimateCents: 2000 },
+  { code: 'FR', label: 'France', estimateCents: 2000 },
+  { code: 'DE', label: 'Germany', estimateCents: 2000 },
+  { code: 'GR', label: 'Greece', estimateCents: 2000 },
+  { code: 'IT', label: 'Italy', estimateCents: 2000 },
+  { code: 'XK', label: 'Kosovo', estimateCents: 200 },
+  { code: 'MK', label: 'North Macedonia', estimateCents: 480 },
+  { code: 'SI', label: 'Slovenia', estimateCents: 2000 },
+  { code: 'SE', label: 'Sweden', estimateCents: 2000 },
+  { code: 'CH', label: 'Switzerland', estimateCents: 2000 },
+  { code: 'GB', label: 'United Kingdom', estimateCents: 2000 },
 ];
 
 export const shippingEstimateCents = (countryCode) =>

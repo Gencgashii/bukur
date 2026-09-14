@@ -70,10 +70,18 @@ if (IS_PROD && CLIENT_ORIGINS.length === 0) {
 // ---------------------------------------------------------------------------
 // Shipping rates. Structured by ISO country code. Cents. No free-text matching.
 // These mirror the business rules already used by the storefront
-// (Kosovo Post / Albania Post). Adjust here only.
+// (Kosovo Post / Albania Post) and MUST list exactly the same countries, at
+// the same rates, as SHIPPING_COUNTRIES in src/config.js — the frontend
+// dropdown offers whatever's listed there, but this map decides what an
+// order actually gets charged and accepted for. This default is only used
+// when the SHIPPING_RATES env var isn't set — production (Render) must set
+// it explicitly to pick up a rate change.
 // ---------------------------------------------------------------------------
 const SHIPPING_RATES_CENTS = (() => {
-  const raw = optional('SHIPPING_RATES', 'XK:180,AL:480');
+  const raw = optional(
+    'SHIPPING_RATES',
+    'XK:200,AL:480,MK:480,AT:2000,BE:2000,BG:2000,HR:2000,FR:2000,DE:2000,GR:2000,IT:2000,SI:2000,SE:2000,CH:2000,GB:2000'
+  );
   const map = {};
   for (const pair of raw.split(',')) {
     const [code, cents] = pair.split(':').map((s) => s.trim());
