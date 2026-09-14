@@ -91,7 +91,11 @@
 
 /* fields */
 .co__fields { display: grid; gap: 1.5rem; }
-.co__row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+/* align-items: start (not the grid default of stretch) keeps every field's
+   own natural height — otherwise a sibling whose FieldError span is empty
+   gets stretched to match a neighbor whose error just filled in, and that
+   extra space pushes its input down out of line with the row. */
+.co__row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start; }
 .co__row--3 { grid-template-columns: 1fr 1fr 1fr; }
 .co__field {
   display: grid;
