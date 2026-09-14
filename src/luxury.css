@@ -65,19 +65,28 @@
 
   /* eased fade to the page ground — long faint tail so a full-bleed image
      dissolves into the layout with no perceptible band. Reusable on any
-     hard section seam. */
+     hard section seam. Derived from --paper via color-mix (not a hardcoded
+     rgb triple) so it always matches, whatever --paper is set to. */
   --seam-fade-down: linear-gradient(to bottom,
-    rgb(254, 252, 247) 0%, rgb(254, 252, 247) 6%,
-    rgba(254, 252, 247, 0.95) 18%, rgba(254, 252, 247, 0.84) 30%,
-    rgba(254, 252, 247, 0.66) 44%, rgba(254, 252, 247, 0.46) 58%,
-    rgba(254, 252, 247, 0.28) 71%, rgba(254, 252, 247, 0.14) 83%,
-    rgba(254, 252, 247, 0.05) 93%, rgba(254, 252, 247, 0) 100%);
+    var(--paper) 0%, var(--paper) 6%,
+    color-mix(in srgb, var(--paper) 95%, transparent) 18%,
+    color-mix(in srgb, var(--paper) 84%, transparent) 30%,
+    color-mix(in srgb, var(--paper) 66%, transparent) 44%,
+    color-mix(in srgb, var(--paper) 46%, transparent) 58%,
+    color-mix(in srgb, var(--paper) 28%, transparent) 71%,
+    color-mix(in srgb, var(--paper) 14%, transparent) 83%,
+    color-mix(in srgb, var(--paper) 5%, transparent) 93%,
+    transparent 100%);
   --seam-fade-up: linear-gradient(to top,
-    rgb(254, 252, 247) 0%, rgb(254, 252, 247) 6%,
-    rgba(254, 252, 247, 0.95) 18%, rgba(254, 252, 247, 0.84) 30%,
-    rgba(254, 252, 247, 0.66) 44%, rgba(254, 252, 247, 0.46) 58%,
-    rgba(254, 252, 247, 0.28) 71%, rgba(254, 252, 247, 0.14) 83%,
-    rgba(254, 252, 247, 0.05) 93%, rgba(254, 252, 247, 0) 100%);
+    var(--paper) 0%, var(--paper) 6%,
+    color-mix(in srgb, var(--paper) 95%, transparent) 18%,
+    color-mix(in srgb, var(--paper) 84%, transparent) 30%,
+    color-mix(in srgb, var(--paper) 66%, transparent) 44%,
+    color-mix(in srgb, var(--paper) 46%, transparent) 58%,
+    color-mix(in srgb, var(--paper) 28%, transparent) 71%,
+    color-mix(in srgb, var(--paper) 14%, transparent) 83%,
+    color-mix(in srgb, var(--paper) 5%, transparent) 93%,
+    transparent 100%);
 
   /* ---- z-index scale -------------------------------------------------- */
   --z-header: 100;
