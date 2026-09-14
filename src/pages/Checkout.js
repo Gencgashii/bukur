@@ -5,6 +5,7 @@ import { useOrders } from '../context/OrdersContext';
 import usePageMeta from '../hooks/usePageMeta';
 import { track } from '../lib/analytics';
 import Img from '../components/Img';
+import Select from '../components/Select';
 import logo from '../assets/bukur-logo.png';
 import {
   BANK_DETAILS,
@@ -19,6 +20,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const PHONE_RE = /^[+()\-\s0-9]{6,20}$/;
 
 const hasBankDetails = Boolean(BANK_DETAILS.holder && BANK_DETAILS.iban);
+const COUNTRY_OPTIONS = SHIPPING_COUNTRIES.map((c) => ({ value: c.code, label: c.label }));
 
 // Only payment methods that can actually be completed today. Online card
 // (card_teb) is intentionally omitted — see server/payments/providers/teb.js.
@@ -323,11 +325,15 @@ const Checkout = () => {
                   <input type="text" autoComplete="street-address" placeholder="Street and number" {...fieldProps('address')} required />
                   <FieldError name="address" />
                 </label>
-                <label className="co__field">Country*
-                  <select autoComplete="country" {...fieldProps('country')} required>
-                    {SHIPPING_COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
-                  </select>
-                </label>
+                <div className="co__field">Country*
+                  <Select
+                    autoComplete="country"
+                    options={COUNTRY_OPTIONS}
+                    ariaLabel="Country"
+                    required
+                    {...fieldProps('country')}
+                  />
+                </div>
                 <div className="co__row co__row--3">
                   <label className="co__field">City*
                     <input type="text" autoComplete="address-level2" {...fieldProps('city')} required />

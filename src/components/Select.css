@@ -1,0 +1,74 @@
+.select {
+  position: relative;
+}
+
+.select__btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  border: 0;
+  border-bottom: 1px solid var(--hairline);
+  background: transparent;
+  font: inherit;
+  font-size: 0.95rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+  padding: 0.7rem 0;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--dur-xs) var(--ease-out);
+}
+.select__btn:hover { border-color: var(--ink); }
+.select.is-open .select__btn { border-color: var(--ink); }
+
+.select__chevron {
+  flex: none;
+  color: var(--muted);
+  transition: transform var(--dur-sm) var(--ease-out);
+}
+.select.is-open .select__chevron { transform: rotate(180deg); }
+
+/* Always opens downward — a native <select> popup can flip above the
+   trigger when there isn't room below, which reads as broken next to
+   BUKUR's custom-built fields. This is anchored purely by `top: 100%`
+   so it never does. */
+.select__panel {
+  position: absolute;
+  z-index: var(--z-overlay);
+  top: calc(100% + 0.5rem);
+  left: 0;
+  right: 0;
+  max-height: 15.5rem;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.4rem;
+  list-style: none;
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-solid);
+  text-transform: none;
+  letter-spacing: 0;
+  animation: select-drop var(--dur-sm) var(--ease-out);
+}
+@keyframes select-drop {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+.select__opt {
+  padding: 0.62rem 0.7rem;
+  font-size: 0.88rem;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background var(--dur-xs) var(--ease-out), color var(--dur-xs) var(--ease-out);
+}
+.select__opt.is-active { background: var(--bone); }
+.select__opt.is-selected { color: var(--bronze-deep); font-weight: 500; }
+
+@media (prefers-reduced-motion: reduce) {
+  .select__panel { animation: none; }
+  .select__chevron { transition: none; }
+}
