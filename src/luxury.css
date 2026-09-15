@@ -92,6 +92,19 @@
     color-mix(in srgb, var(--paper) 14%, transparent) 83%,
     color-mix(in srgb, var(--paper) 5%, transparent) 93%,
     transparent 100%);
+  /* same shape, but dissolving to --surface instead of --paper — for a
+     seam where the editorial band sits directly against a --surface
+     neighbor (e.g. About's pull-quote) rather than the page ground. */
+  --seam-fade-up-surface: linear-gradient(to top,
+    var(--surface) 0%, var(--surface) 6%,
+    color-mix(in srgb, var(--surface) 95%, transparent) 18%,
+    color-mix(in srgb, var(--surface) 84%, transparent) 30%,
+    color-mix(in srgb, var(--surface) 66%, transparent) 44%,
+    color-mix(in srgb, var(--surface) 46%, transparent) 58%,
+    color-mix(in srgb, var(--surface) 28%, transparent) 71%,
+    color-mix(in srgb, var(--surface) 14%, transparent) 83%,
+    color-mix(in srgb, var(--surface) 5%, transparent) 93%,
+    transparent 100%);
 
   /* ---- z-index scale -------------------------------------------------- */
   --z-header: 100;
@@ -680,6 +693,10 @@ button, input, select, textarea { font-family: inherit; color: inherit; }
 }
 .editorial::before { top: 0; background: var(--seam-fade-down); }
 .editorial::after { bottom: 0; background: var(--seam-fade-up); }
+/* About's "origin" editorial sits directly above the --surface pull-quote,
+   not the --paper page ground — the default fade above dissolved to the
+   wrong color there, leaving a visible mismatched band right at the seam. */
+.editorial:has(+ .about__quote)::after { background: var(--seam-fade-up-surface); }
 
 /* full-bleed single editorial image with an overlaid caption */
 .editorial-full {
