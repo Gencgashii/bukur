@@ -173,7 +173,7 @@
   .pd__sticky {
     position: static;
     min-height: 0;
-    padding: clamp(2rem, 8vw, 3rem) var(--gutter) calc(var(--section-y) + 4rem);
+    padding: clamp(1rem, 4vw, 1.5rem) var(--gutter) calc(var(--section-y) + 4rem);
   }
   .pd__sticky > * { max-width: none; }
   .pd__stickybuy { display: block; }
