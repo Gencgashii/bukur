@@ -105,19 +105,6 @@
     color-mix(in srgb, var(--surface) 14%, transparent) 83%,
     color-mix(in srgb, var(--surface) 5%, transparent) 93%,
     transparent 100%);
-  /* same shape as --seam-fade-down, dissolving to --surface — for the
-     editorial immediately AFTER a --surface neighbor (e.g. the dark
-     "signature" editorial right after About's pull-quote). */
-  --seam-fade-down-surface: linear-gradient(to bottom,
-    var(--surface) 0%, var(--surface) 6%,
-    color-mix(in srgb, var(--surface) 95%, transparent) 18%,
-    color-mix(in srgb, var(--surface) 84%, transparent) 30%,
-    color-mix(in srgb, var(--surface) 66%, transparent) 44%,
-    color-mix(in srgb, var(--surface) 46%, transparent) 58%,
-    color-mix(in srgb, var(--surface) 28%, transparent) 71%,
-    color-mix(in srgb, var(--surface) 14%, transparent) 83%,
-    color-mix(in srgb, var(--surface) 5%, transparent) 93%,
-    transparent 100%);
 
   /* ---- z-index scale -------------------------------------------------- */
   --z-header: 100;
@@ -726,16 +713,16 @@ button, input, select, textarea { font-family: inherit; color: inherit; }
    not the --paper page ground — the default fade above dissolved to the
    wrong color there, leaving a visible mismatched band right at the seam. */
 .editorial:has(+ .about__quote)::after { background: var(--seam-fade-up-surface); }
-/* ...and the dark "signature" editorial right after it has the matching
-   problem on its own top edge: its default ::before fades from --paper,
-   which doesn't match the --surface quote it's actually sitting under. */
-.about__quote + .editorial::before { background: var(--seam-fade-down-surface); }
-/* Same section's OWN bottom edge has the identical problem meeting "craft"
-   (also --surface) below it — plus "craft"'s own top fade was firing at
-   that exact same seam too, both wrongly targeting --paper, stacking into
-   one oversized white band. Fix signature's ::after to the right color and
-   disable craft's redundant ::before rather than run two fades at once. */
-.about__quote + .editorial::after { background: var(--seam-fade-up-surface); }
+/* The dark "signature" editorial immediately before/after the pull-quote is
+   a genuinely dark photograph meeting a light --surface neighbor on BOTH
+   edges — fading a dark image toward a light color always reads as a hazy
+   wash, however correctly it's colored (confirmed live, twice). A clean,
+   confident hard cut between the two flat tones reads as an intentional
+   architectural block instead, so both of this section's own fades — and
+   "craft"'s redundant top one, which fired at the very same bottom seam —
+   are switched off entirely rather than color-matched. */
+.about__quote + .editorial::before,
+.about__quote + .editorial::after { display: none; }
 .about__quote + .editorial + .editorial::before { display: none; }
 
 /* full-bleed single editorial image with an overlaid caption */
