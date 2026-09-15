@@ -714,6 +714,13 @@ button, input, select, textarea { font-family: inherit; color: inherit; }
    problem on its own top edge: its default ::before fades from --paper,
    which doesn't match the --surface quote it's actually sitting under. */
 .about__quote + .editorial::before { background: var(--seam-fade-down-surface); }
+/* Same section's OWN bottom edge has the identical problem meeting "craft"
+   (also --surface) below it — plus "craft"'s own top fade was firing at
+   that exact same seam too, both wrongly targeting --paper, stacking into
+   one oversized white band. Fix signature's ::after to the right color and
+   disable craft's redundant ::before rather than run two fades at once. */
+.about__quote + .editorial::after { background: var(--seam-fade-up-surface); }
+.about__quote + .editorial + .editorial::before { display: none; }
 
 /* full-bleed single editorial image with an overlaid caption */
 .editorial-full {
