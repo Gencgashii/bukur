@@ -676,6 +676,22 @@ button, input, select, textarea { font-family: inherit; color: inherit; }
 .editorial--flip .editorial__media { order: 2; }
 .editorial--flip .editorial__body { order: 1; }
 .editorial--dark { background: var(--ink); color: var(--on-dark); }
+/* Desktop: dissolve the dark editorial's photo into its copy panel instead
+   of a hard vertical line between the two columns — same idea as the
+   "photo melts into the ink block" treatment already used on mobile
+   (§7 below), just horizontal here since the columns sit side by side. */
+.editorial--dark .editorial__media::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.editorial--dark:not(.editorial--flip) .editorial__media::after {
+  background: linear-gradient(to right, transparent 55%, var(--ink) 100%);
+}
+.editorial--dark.editorial--flip .editorial__media::after {
+  background: linear-gradient(to left, transparent 55%, var(--ink) 100%);
+}
 .editorial__media { position: relative; overflow: hidden; }
 .editorial__media img, .editorial__media video { width: 100%; height: 100%; object-fit: cover; transition: transform 1.8s var(--ease); }
 .editorial__media .img { position: absolute; inset: 0; transition: transform 1.8s var(--ease); }
