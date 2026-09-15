@@ -104,14 +104,35 @@ const ProductDetail = () => {
   }, [product]);
 
   useEffect(() => {
-    const el = buyRef.current;
-    if (!el || typeof IntersectionObserver === 'undefined') return undefined;
-    const io = new IntersectionObserver(
-      ([entry]) => setShowSticky(!entry.isIntersecting),
+    const buyEl = buyRef.current;
+    if (!buyEl || typeof IntersectionObserver === 'undefined') return undefined;
+    // The sticky bar should only show while the real "Add to bag" button is
+    // scrolled out of view AND the footer hasn't scrolled into view yet —
+    // otherwise, on mobile, it keeps floating on top of the footer once the
+    // user scrolls all the way down (there's no route-local footer element
+    // to observe directly, since Footer is rendered by the app shell, not
+    // this page — a plain DOM query for the one global footer is the
+    // simplest way to react to it without threading props through layout).
+    let buyHidden = false;
+    let footerVisible = false;
+    const update = () => setShowSticky(buyHidden && !footerVisible);
+
+    const buyIo = new IntersectionObserver(
+      ([entry]) => { buyHidden = !entry.isIntersecting; update(); },
       { rootMargin: '-80px 0px 0px 0px' }
     );
-    io.observe(el);
-    return () => io.disconnect();
+    buyIo.observe(buyEl);
+
+    const footerEl = document.querySelector('.ft');
+    const footerIo = footerEl
+      ? new IntersectionObserver(([entry]) => { footerVisible = entry.isIntersecting; update(); })
+      : null;
+    footerIo?.observe(footerEl);
+
+    return () => {
+      buyIo.disconnect();
+      footerIo?.disconnect();
+    };
   }, [product]);
 
   if (loading) {
