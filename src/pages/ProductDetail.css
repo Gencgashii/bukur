@@ -120,7 +120,49 @@
 .pd__qty span { min-width: 1.9rem; text-align: center; font-size: 0.82rem; font-variant-numeric: tabular-nums; }
 .pd__buy .btn { flex: 1; letter-spacing: 0.2em; }
 
-.pd__added { margin-top: 1rem; font-size: 0.78rem; color: var(--ink-soft); }
+.pd__added {
+  margin-top: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.9rem 1.15rem;
+  background: var(--ink);
+  color: var(--on-dark);
+  animation: pd-added-in 0.45s var(--ease-out) both;
+}
+.pd__added-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 999px;
+  background: var(--on-dark);
+  color: var(--ink);
+  font-size: 0.62rem;
+  line-height: 1;
+}
+.pd__added-text { flex: 1 1 auto; font-size: 0.8rem; letter-spacing: 0.01em; }
+.pd__added-link {
+  flex: 0 0 auto;
+  font-size: 0.64rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--on-dark);
+  white-space: nowrap;
+  border-bottom: 1px solid var(--on-dark-soft);
+  padding-bottom: 3px;
+  transition: color var(--dur-xs) var(--ease-out), border-color var(--dur-xs) var(--ease-out);
+}
+.pd__added-link:hover { color: var(--on-dark-soft); border-color: var(--on-dark); }
+@keyframes pd-added-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pd__added { animation: none; }
+}
 
 /* meta rows — open a right-hand drawer */
 .pd__meta { margin-top: 2.6rem; border-top: 1px solid var(--hairline); }

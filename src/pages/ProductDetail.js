@@ -254,9 +254,11 @@ const ProductDetail = () => {
             </div>
 
             {added && (
-              <p className="pd__added" role="status">
-                Added to your bag. <Link to="/cart" className="link-underline">View bag</Link>
-              </p>
+              <div className="pd__added" role="status">
+                <span className="pd__added-icon" aria-hidden="true">&#10003;</span>
+                <span className="pd__added-text">Added to your bag</span>
+                <Link to="/cart" className="pd__added-link">View bag</Link>
+              </div>
             )}
 
             <div className="pd__meta">
