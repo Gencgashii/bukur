@@ -26,7 +26,22 @@
   scrollbar-width: none;
 }
 .gal__track::-webkit-scrollbar { display: none; }
-.gal__slide { position: relative; flex: 0 0 100%; scroll-snap-align: start; aspect-ratio: 4 / 5; background: var(--surface); overflow: hidden; }
+/* Height comes from the classic padding-top intrinsic-ratio trick (125% =
+   4:5), not the `aspect-ratio` property: `aspect-ratio` on a flex item whose
+   own flex-basis is a percentage (`flex: 0 0 100%`) inside a horizontally
+   scrolling container is a real cross-engine edge case — some browsers can
+   compute a slide's height against the wrong width reference, leaving the
+   absolutely-positioned image short of the slide's actual rendered box. The
+   padding-top technique has no such ambiguity: it is always a percentage of
+   the slide's own width, in every browser. */
+.gal__slide {
+  position: relative;
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  background: var(--surface);
+  overflow: hidden;
+}
+.gal__slide::before { content: ''; display: block; padding-top: 125%; }
 .gal__slide img { width: 100%; height: 100%; object-fit: cover; }
 .gal__slide .img { position: absolute; inset: 0; }
 .gal__dots { display: flex; gap: 0.4rem; justify-content: center; margin-top: 1rem; }
