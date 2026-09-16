@@ -1,5 +1,5 @@
 .contact {
-  padding-top: calc(var(--section-y) + 1.5rem);
+  padding-top: clamp(2.5rem, 5vw, 4rem);
   padding-bottom: var(--section-y-lg);
 }
 
@@ -32,6 +32,7 @@
 
 /* form */
 .contact__form { display: grid; gap: 1.5rem; }
+.contact__row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
 .contact__field {
   display: grid;
   gap: 0.5rem;
@@ -73,4 +74,8 @@
 @media (max-width: 900px) {
   .contact__grid { grid-template-columns: 1fr; }
   .contact__form-wrap { order: -1; }
+}
+
+@media (max-width: 560px) {
+  .contact__row { grid-template-columns: 1fr; }
 }
