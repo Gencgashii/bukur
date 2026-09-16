@@ -69,6 +69,9 @@ const ProductDetail = () => {
   const [sizeError, setSizeError] = useState(false);
   const [sizeErrorPulse, setSizeErrorPulse] = useState(0);
   const [added, setAdded] = useState(false);
+  const [addedLeaving, setAddedLeaving] = useState(false);
+  const addedTimers = useRef([]);
+  useEffect(() => () => addedTimers.current.forEach(clearTimeout), []);
   const [showSticky, setShowSticky] = useState(false);
   const [drawer, setDrawer] = useState(null); // 'details' | 'sizing' | 'shipping'
   const buyRef = useRef(null);
@@ -183,8 +186,16 @@ const ProductDetail = () => {
     setSizeError(false);
     addToCart(product, needsSize ? size : '', qty);
     track('add_to_cart', { id: product.id, name: product.name, size: needsSize ? size : '', quantity: qty, price: product.price });
+    addedTimers.current.forEach(clearTimeout);
+    setAddedLeaving(false);
     setAdded(true);
-    setTimeout(() => setAdded(false), 3500);
+    addedTimers.current = [
+      setTimeout(() => setAddedLeaving(true), 5200),
+      setTimeout(() => {
+        setAdded(false);
+        setAddedLeaving(false);
+      }, 5600),
+    ];
   };
 
   const META = [
@@ -254,7 +265,7 @@ const ProductDetail = () => {
             </div>
 
             {added && (
-              <div className="pd__added" role="status">
+              <div className={`pd__added ${addedLeaving ? 'is-leaving' : ''}`} role="status">
                 <span className="pd__added-icon" aria-hidden="true">&#10003;</span>
                 <span className="pd__added-text">Added to your bag</span>
                 <Link to="/cart" className="pd__added-link">View bag</Link>
