@@ -33,7 +33,6 @@
 /* form */
 .contact__form-wrap { margin-top: clamp(6.5rem, 12vw, 11rem); }
 .contact__form { display: grid; gap: 1.5rem; }
-.contact__row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
 .contact__field {
   display: grid;
   gap: 0.5rem;
@@ -55,7 +54,7 @@
   padding: 0.65rem 0;
   transition: border-color var(--dur-xs) var(--ease-out);
 }
-.contact__field textarea { resize: vertical; min-height: 6rem; }
+.contact__field textarea { resize: vertical; min-height: 3.5rem; }
 .contact__field input::placeholder { color: var(--muted); opacity: 0.7; }
 .contact__field input:focus,
 .contact__field textarea:focus { outline: 0; border-bottom-color: var(--ink); }
@@ -77,6 +76,3 @@
   .contact__form-wrap { order: -1; margin-top: clamp(1.5rem, 5vw, 2.5rem); }
 }
 
-@media (max-width: 560px) {
-  .contact__row { grid-template-columns: 1fr; }
-}

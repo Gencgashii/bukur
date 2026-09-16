@@ -84,19 +84,17 @@ const Contact = () => {
               </div>
             ) : (
               <form className="contact__form" onSubmit={onSubmit}>
-                <div className="contact__row">
-                  <label className="contact__field">First and last name*
-                    <input type="text" name="name" value={form.name} onChange={onChange} required />
-                  </label>
-                  <label className="contact__field">Email*
-                    <input type="email" name="email" value={form.email} onChange={onChange} required />
-                  </label>
-                </div>
+                <label className="contact__field">First and last name*
+                  <input type="text" name="name" value={form.name} onChange={onChange} required />
+                </label>
+                <label className="contact__field">Email*
+                  <input type="email" name="email" value={form.email} onChange={onChange} required />
+                </label>
                 <label className="contact__field">Order reference (optional)
                   <input type="text" name="order" value={form.order} onChange={onChange} placeholder="BK-000000" />
                 </label>
                 <label className="contact__field">How can we help?*
-                  <textarea name="message" rows={6} value={form.message} onChange={onChange} required />
+                  <textarea name="message" rows={3} value={form.message} onChange={onChange} required />
                 </label>
                 <button type="submit" className="btn btn--block">Send message</button>
                 <p className="contact__disclaimer">
