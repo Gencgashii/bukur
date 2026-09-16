@@ -11,6 +11,7 @@
 .faq__head .u-display { margin-top: 1.25rem; }
 
 .faq__group { margin-bottom: clamp(3rem, 7vw, 5rem); }
+.faq__group:last-of-type { margin-bottom: 0; }
 .faq__group-title {
   font-family: var(--sans);
   font-size: 0.68rem;
