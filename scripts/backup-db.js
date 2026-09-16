@@ -13,6 +13,13 @@
  *   - the password is passed to pg_dump via the environment (PGPASSWORD), never
  *     on the command line, and is never printed or written to a filename.
  *   - fails (exit 1) if DATABASE_URL is missing or pg_dump is not found.
+ *   - when more than one pg_dump is found on the machine, it is matched
+ *     against the TARGET SERVER's version rather than silently picking
+ *     whichever the OS lists first / the newest installed — a newer pg_dump
+ *     can emit directives the real (older) server cannot restore (e.g. a
+ *     PG18 dump's `transaction_timeout` failing to restore on a PG16
+ *     server). Ambiguous with no match -> fails with the exact fix
+ *     (set PG_DUMP to the matching client).
  *   - timestamped, non-user-controlled filenames.
  *   - refuses to overwrite an existing backup file.
  *   - reports success ONLY after pg_dump exits 0 and the file is non-empty;
@@ -25,6 +32,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { spawnSync } = require('child_process');
+const { Client } = require('pg');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -77,30 +85,98 @@ const conn = {
 if (!conn.PGDATABASE) fail('DATABASE_URL has no database name.');
 
 // ---- locate pg_dump ---------------------------------------------------------
-function resolvePgDump() {
-  if (process.env.PG_DUMP && fs.existsSync(process.env.PG_DUMP)) return process.env.PG_DUMP;
+// Collects every pg_dump binary findable on this machine (PATH + all
+// installed Program Files versions on Windows) — deliberately NOT just the
+// first/newest one, so an ambiguous install can be resolved by version.
+function collectPgDumpCandidates() {
+  const found = [];
   const probe = spawnSync(process.platform === 'win32' ? 'where' : 'which', ['pg_dump'], { encoding: 'utf8' });
   if (probe.status === 0) {
-    const first = probe.stdout.split(/\r?\n/).find(Boolean);
-    if (first) return first.trim();
+    for (const line of probe.stdout.split(/\r?\n/)) {
+      const p = line.trim();
+      if (p && fs.existsSync(p)) found.push(p);
+    }
   }
   if (process.platform === 'win32') {
     const bases = ['C:/Program Files/PostgreSQL', 'C:/Program Files (x86)/PostgreSQL'];
     for (const b of bases) {
       if (!fs.existsSync(b)) continue;
-      const vers = fs.readdirSync(b).sort().reverse();
-      for (const v of vers) {
+      for (const v of fs.readdirSync(b)) {
         const p = path.join(b, v, 'bin', 'pg_dump.exe');
-        if (fs.existsSync(p)) return p;
+        if (fs.existsSync(p)) found.push(p);
       }
     }
   }
-  return null;
+  return [...new Set(found)];
 }
-const PG_DUMP = resolvePgDump();
-if (!PG_DUMP) {
-  fail('pg_dump not found. Install PostgreSQL client tools or set PG_DUMP=/path/to/pg_dump.');
+
+function pgDumpMajorVersion(bin) {
+  const r = spawnSync(bin, ['--version'], { encoding: 'utf8' });
+  if (r.status !== 0) return null;
+  const m = /PostgreSQL\)\s+(\d+)/.exec(r.stdout || '');
+  return m ? Number(m[1]) : null;
 }
+
+async function targetServerMajorVersion() {
+  const client = new Client({
+    host: conn.PGHOST,
+    port: Number(conn.PGPORT),
+    user: conn.PGUSER,
+    password: conn.PGPASSWORD,
+    database: conn.PGDATABASE,
+    ssl: sslmode ? { rejectUnauthorized: sslmode === 'verify-full' } : false,
+  });
+  await client.connect();
+  try {
+    const { rows } = await client.query('SHOW server_version_num');
+    return Math.floor(Number(rows[0].server_version_num) / 10000);
+  } finally {
+    await client.end();
+  }
+}
+
+async function resolvePgDump() {
+  if (process.env.PG_DUMP) {
+    if (!fs.existsSync(process.env.PG_DUMP)) {
+      fail(`PG_DUMP is set but does not exist: ${process.env.PG_DUMP}`);
+    }
+    return process.env.PG_DUMP;
+  }
+
+  const candidates = collectPgDumpCandidates();
+  if (candidates.length === 0) {
+    fail('pg_dump not found. Install PostgreSQL client tools or set PG_DUMP=/path/to/pg_dump.');
+  }
+  if (candidates.length === 1) return candidates[0];
+
+  // More than one pg_dump on this machine — do not guess. Match it against
+  // the server we are actually about to dump.
+  let serverMajor;
+  try {
+    serverMajor = await targetServerMajorVersion();
+  } catch (e) {
+    fail(
+      `Multiple pg_dump versions found (${candidates.join(', ')}) and could not connect to ` +
+        `the target server to pick the matching one (${e.message}). Set PG_DUMP explicitly.`
+    );
+  }
+
+  const withVersions = candidates.map((p) => ({ path: p, version: pgDumpMajorVersion(p) }));
+  const exact = withVersions.find((c) => c.version === serverMajor);
+  if (exact) {
+    console.log(
+      `[backup] multiple pg_dump installs found; using v${exact.version} (matches server v${serverMajor}): ${exact.path}`
+    );
+    return exact.path;
+  }
+
+  fail(
+    `Multiple pg_dump versions found and none match the target server (v${serverMajor}):\n` +
+      withVersions.map((c) => `  - v${c.version ?? 'unknown'}: ${c.path}`).join('\n') +
+      `\nInstall a matching client, or set PG_DUMP to one you know can restore against v${serverMajor}.`
+  );
+}
+let PG_DUMP;
 
 // ---- output format + filename --------------------------------------------
 const schemaOnly = has('--schema-only');
@@ -128,11 +204,6 @@ if (dataOnly) dumpArgs.push('--data-only');
 
 const childEnv = { ...process.env, ...conn };
 
-console.log(`[backup] pg_dump: ${PG_DUMP}`);
-console.log(`[backup] source : ${conn.PGUSER}@${conn.PGHOST}:${conn.PGPORT}/${conn.PGDATABASE}${sslmode ? ` (sslmode=${sslmode})` : ''}`);
-console.log(`[backup] format : ${format}${schemaOnly ? ' (schema-only)' : dataOnly ? ' (data-only)' : ''}`);
-console.log(`[backup] target : ${outFile}`);
-
 async function runDump() {
   if (gzip) {
     // pg_dump | gzip > file  — done in Node to stay cross-platform.
@@ -153,6 +224,13 @@ async function runDump() {
 }
 
 (async () => {
+  PG_DUMP = await resolvePgDump();
+
+  console.log(`[backup] pg_dump: ${PG_DUMP}`);
+  console.log(`[backup] source : ${conn.PGUSER}@${conn.PGHOST}:${conn.PGPORT}/${conn.PGDATABASE}${sslmode ? ` (sslmode=${sslmode})` : ''}`);
+  console.log(`[backup] format : ${format}${schemaOnly ? ' (schema-only)' : dataOnly ? ' (data-only)' : ''}`);
+  console.log(`[backup] target : ${outFile}`);
+
   const started = Date.now();
   const status = await runDump();
 

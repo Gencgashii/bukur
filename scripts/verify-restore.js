@@ -90,36 +90,91 @@ const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, '
 const restoreDb = assertDisposable(targetArg || `bukur_restore_verify_${stamp}`);
 const schemaDb = assertDisposable(`bukur_restore_verify_schemafile_${stamp}`);
 
-// ---- locate client tools ----------------------------------------------
-function tool(name) {
-  if (process.env.PG_BIN && fs.existsSync(path.join(process.env.PG_BIN, name + (process.platform === 'win32' ? '.exe' : '')))) {
-    return path.join(process.env.PG_BIN, name + (process.platform === 'win32' ? '.exe' : ''));
-  }
-  const probe = spawnSync(process.platform === 'win32' ? 'where' : 'which', [name], { encoding: 'utf8' });
+// ---- locate client tools -------------------------------------------------
+// All four tools (psql/pg_restore/createdb/dropdb) are resolved from the SAME
+// bin directory — never mixed from different installs. When more than one
+// PostgreSQL install is found and PG_BIN isn't set explicitly, the directory
+// is matched against the SOURCE server's version rather than picking
+// whichever is newest/first: a newer pg_restore/psql can emit session setup
+// (e.g. `SET transaction_timeout = 0`) that an older real server rejects,
+// which fails the restore even though the dump itself is fine.
+const TOOL_NAMES = ['psql', 'pg_restore', 'createdb', 'dropdb'];
+function exeName(name) {
+  return name + (process.platform === 'win32' ? '.exe' : '');
+}
+function toolInDir(dir, name) {
+  const p = path.join(dir, exeName(name));
+  return fs.existsSync(p) ? p : null;
+}
+function candidateBinDirs() {
+  const dirs = new Set();
+  const probe = spawnSync(process.platform === 'win32' ? 'where' : 'which', ['psql'], { encoding: 'utf8' });
   if (probe.status === 0) {
-    const f = probe.stdout.split(/\r?\n/).find(Boolean);
-    if (f) return f.trim();
+    for (const line of probe.stdout.split(/\r?\n/)) {
+      const p = line.trim();
+      if (p && fs.existsSync(p)) dirs.add(path.dirname(p));
+    }
   }
   if (process.platform === 'win32') {
     for (const b of ['C:/Program Files/PostgreSQL', 'C:/Program Files (x86)/PostgreSQL']) {
       if (!fs.existsSync(b)) continue;
-      for (const v of fs.readdirSync(b).sort().reverse()) {
-        const p = path.join(b, v, 'bin', name + '.exe');
-        if (fs.existsSync(p)) return p;
+      for (const v of fs.readdirSync(b)) {
+        const bin = path.join(b, v, 'bin');
+        if (toolInDir(bin, 'psql')) dirs.add(bin);
       }
     }
   }
-  return null;
+  return [...dirs];
 }
-const PSQL = tool('psql');
-const PG_RESTORE = tool('pg_restore');
-const CREATEDB = tool('createdb');
-const DROPDB = tool('dropdb');
-if (!PSQL || !PG_RESTORE || !CREATEDB || !DROPDB) {
-  console.error('[verify-restore] PostgreSQL client tools not found (psql/pg_restore/createdb/dropdb).');
-  console.error('[verify-restore] Real restore verification is PENDING — install client tools or set PG_BIN.');
-  process.exit(2);
+function binDirMajorVersion(dir) {
+  const r = spawnSync(toolInDir(dir, 'psql'), ['--version'], { encoding: 'utf8' });
+  if (r.status !== 0) return null;
+  const m = /\)\s+(\d+)/.exec(r.stdout || '');
+  return m ? Number(m[1]) : null;
 }
+async function sourceServerMajorVersion() {
+  const client = new Client({ ...conn, database: sourceDb, ssl: sslmode ? { rejectUnauthorized: sslmode === 'verify-full' } : false });
+  await client.connect();
+  try {
+    const { rows } = await client.query('SHOW server_version_num');
+    return Math.floor(Number(rows[0].server_version_num) / 10000);
+  } finally {
+    await client.end();
+  }
+}
+async function resolveBinDir() {
+  if (process.env.PG_BIN) {
+    if (!fs.existsSync(process.env.PG_BIN)) die(`PG_BIN is set but does not exist: ${process.env.PG_BIN}`);
+    return process.env.PG_BIN;
+  }
+  const dirs = candidateBinDirs();
+  if (dirs.length === 0) return null;
+  if (dirs.length === 1) return dirs[0];
+
+  let serverMajor;
+  try {
+    serverMajor = await sourceServerMajorVersion();
+  } catch (e) {
+    die(
+      `Multiple PostgreSQL client installs found (${dirs.join(', ')}) and could not connect to ` +
+        `the source server to pick the matching one (${e.message}). Set PG_BIN explicitly.`
+    );
+  }
+  const withVersions = dirs.map((d) => ({ dir: d, version: binDirMajorVersion(d) }));
+  const exact = withVersions.find((c) => c.version === serverMajor);
+  if (exact) {
+    console.log(
+      `[verify-restore] multiple PostgreSQL client installs found; using v${exact.version} (matches source server v${serverMajor}): ${exact.dir}`
+    );
+    return exact.dir;
+  }
+  die(
+    `Multiple PostgreSQL client installs found and none match the source server (v${serverMajor}):\n` +
+      withVersions.map((c) => `  - v${c.version ?? 'unknown'}: ${c.dir}`).join('\n') +
+      `\nInstall a matching client, or set PG_BIN to a bin directory you know can restore against v${serverMajor}.`
+  );
+}
+let PSQL, PG_RESTORE, CREATEDB, DROPDB;
 
 function sh(bin, argv, opts = {}) {
   return spawnSync(bin, argv, { env: pgEnv, encoding: 'utf8', ...opts });
@@ -168,6 +223,22 @@ function diffSets(a, b) {
 }
 
 (async () => {
+  const binDir = await resolveBinDir();
+  if (!binDir) {
+    console.error('[verify-restore] PostgreSQL client tools not found (psql/pg_restore/createdb/dropdb).');
+    console.error('[verify-restore] Real restore verification is PENDING — install client tools or set PG_BIN.');
+    process.exit(2);
+  }
+  PSQL = toolInDir(binDir, 'psql');
+  PG_RESTORE = toolInDir(binDir, 'pg_restore');
+  CREATEDB = toolInDir(binDir, 'createdb');
+  DROPDB = toolInDir(binDir, 'dropdb');
+  const missing = TOOL_NAMES.filter((n) => !toolInDir(binDir, n));
+  if (missing.length) {
+    console.error(`[verify-restore] ${binDir} is missing: ${missing.join(', ')}`);
+    process.exit(2);
+  }
+
   console.log(`[verify-restore] backup   : ${backupFile} (${isPlain ? 'plain SQL' : 'custom'})`);
   console.log(`[verify-restore] source   : ${conn.user}@${conn.host}:${conn.port}/${sourceDb} (READ-ONLY)`);
   console.log(`[verify-restore] restore  -> disposable db "${restoreDb}"`);
