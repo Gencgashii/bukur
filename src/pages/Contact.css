@@ -73,7 +73,7 @@
 
 @media (max-width: 900px) {
   .contact__grid { grid-template-columns: 1fr; }
-  .contact__form-wrap { order: -1; }
+  .contact__form-wrap { order: -1; margin-top: clamp(1.5rem, 5vw, 2.5rem); }
 }
 
 @media (max-width: 560px) {
