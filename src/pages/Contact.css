@@ -31,7 +31,7 @@
 .contact__social a { color: var(--ink-soft); }
 
 /* form */
-.contact__form-wrap { margin-top: clamp(6rem, 11vw, 10rem); }
+.contact__form-wrap { margin-top: clamp(6.5rem, 12vw, 11rem); }
 .contact__form { display: grid; gap: 1.5rem; }
 .contact__row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
 .contact__field {
