@@ -65,7 +65,14 @@ const ProductGallery = ({ images = [], alt = '' }) => {
         <div className="gal__track" ref={trackRef} onScroll={onScroll}>
           {list.map((src, i) => (
             <div className="gal__slide" key={i}>
-              <Img src={src} alt={i === 0 ? alt : `${alt} — view ${i + 1}`} sizes="100vw" priority fill />
+              <Img
+                src={src}
+                alt={i === 0 ? alt : `${alt} — view ${i + 1}`}
+                sizes="100vw"
+                priority={i === 0}
+                eager={i > 0}
+                fill
+              />
             </div>
           ))}
         </div>

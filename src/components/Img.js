@@ -22,6 +22,7 @@ export default function Img({
   alt = '',
   sizes = '100vw',
   priority = false,
+  eager = false,
   fill = false,
   ratio,
   className = '',
@@ -30,8 +31,16 @@ export default function Img({
 }) {
   // `alt` is applied explicitly on each <img> below (keeps jsx-a11y/alt-text
   // happy — it can't see props coming from a spread).
+  //
+  // `priority` and `eager` are deliberately separate: `priority` is for the
+  // one above-the-fold image that should win the browser's fetch queue
+  // (fetchpriority=high). `eager` is for images that must actually fetch now
+  // (native `loading="lazy"` doesn't reliably trigger for horizontally
+  // off-screen siblings in a scroll-snap carousel — see ProductGallery) but
+  // should NOT compete at high priority with the real hero image, or they can
+  // starve it on a slow connection and leave its box briefly unpainted.
   const loadProps = {
-    loading: priority ? 'eager' : 'lazy',
+    loading: priority || eager ? 'eager' : 'lazy',
     decoding: 'async',
     // A dead URL (e.g. an admin upload lost to ephemeral storage) shows the
     // quiet cream field instead of the browser's broken-image glyph + alt text.

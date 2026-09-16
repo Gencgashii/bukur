@@ -26,7 +26,7 @@
   scrollbar-width: none;
 }
 .gal__track::-webkit-scrollbar { display: none; }
-.gal__slide { position: relative; flex: 0 0 100%; scroll-snap-align: start; aspect-ratio: 4 / 5; background: var(--surface); }
+.gal__slide { position: relative; flex: 0 0 100%; scroll-snap-align: start; aspect-ratio: 4 / 5; background: var(--surface); overflow: hidden; }
 .gal__slide img { width: 100%; height: 100%; object-fit: cover; }
 .gal__slide .img { position: absolute; inset: 0; }
 .gal__dots { display: flex; gap: 0.4rem; justify-content: center; margin-top: 1rem; }
