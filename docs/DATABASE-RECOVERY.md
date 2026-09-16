@@ -2,7 +2,7 @@
 
 Disaster-recovery runbook for the production PostgreSQL database.
 
-- **DB engine:** PostgreSQL (16 in local dev; match your Render Postgres major version).
+- **DB engine:** PostgreSQL (16 in local dev; production runs on Neon, currently PostgreSQL 17 — match whichever engine actually hosts `DATABASE_URL`, Neon or Render, when picking client tools; `scripts/backup-db.js` and `scripts/verify-restore.js` now do this automatically).
 - **Schema source of truth:** `server/schema.sql`, applied idempotently on every
   boot by `server/db/…` (`initDatabase()`). There is **no migration framework** —
   the file is `CREATE TABLE IF NOT EXISTS` + `ALTER TABLE … ADD COLUMN IF NOT
@@ -18,7 +18,7 @@ Disaster-recovery runbook for the production PostgreSQL database.
 
 | Layer | What it is | Who runs it | Covers |
 |---|---|---|---|
-| **Hosting provider backups** | Render Managed PostgreSQL automated backups (and PITR where the plan supports it). Retention and PITR depend on the plan tier — **verify the exact retention in the Render dashboard**; the `starter` plan's retention is short. | Render | Fast recovery of the Render instance itself |
+| **Hosting provider backups** | Neon's built-in point-in-time restore ("Restore from history", Backup & Restore tab). **Confirmed 2026-09-16: 6-hour history window on the Free plan.** Instant, but anything older than 6 hours ago is gone from Neon's side — Neon also offers on-demand "Create snapshot" (manual, free) for before a risky migration; scheduled snapshots need a paid plan. If/when the DB is moved to Render Managed PostgreSQL instead, re-verify retention in the Render dashboard — it depends on the plan tier there too. | Neon (or Render, if migrated) | Fast recovery of the hosted instance itself, but only within its short window |
 | **Application backup tooling** (this repo) | `npm run db:backup` → `pg_dump` logical dump, copied to storage **outside** the Render container | An operator, a CI job, or a scheduled infrastructure task | Portable, provider-independent copy; protection against accidental `DELETE`/corruption; restore into any Postgres |
 
 The application does **not** and **must not** schedule backups with an
@@ -169,11 +169,16 @@ These follow directly from the configured backup cadence — **do not promise
 better than what is actually scheduled.**
 
 - **RPO (max data loss):**
-  - With Render provider backups only: **up to ~24 h** (their daily backup), or
-    down to minutes **if** the plan includes point-in-time recovery — confirm in
-    the dashboard.
-  - With the application `db:backup` run **daily**: **up to ~24 h**. Run it more
-    often (e.g. every 6 h) to reduce the RPO proportionally.
+  - **Incident noticed within 6 hours of it happening:** effectively **zero** —
+    use Neon's own "Restore from history" (instant point-in-time restore,
+    confirmed 6-hour window on the Free plan as of 2026-09-16).
+  - **Incident noticed later than 6 hours after it happened** (the common
+    case — most operators don't notice instantly): Neon's window has already
+    rolled past it, so recovery falls back to the application `db:backup`
+    dumps. Those run **daily** (`.github/workflows/backup.yml`, 02:00 UTC), so
+    RPO here is **up to ~24 h**. Run it more often (e.g. every 6 h) to reduce
+    this proportionally, or before any risky manual migration, use Neon's
+    free on-demand "Create snapshot" as an extra restore point.
 - **RTO (time to restore):** for a 9-table, single-digit-MB database, a restore
   + verify + repoint is typically **~15–45 minutes** of operator time once a
   clean target database is available. Provisioning a new managed instance adds
@@ -183,14 +188,14 @@ better than what is actually scheduled.**
 
 ## 7. Production backup checklist
 
-- [ ] Provider (Render) automated backups confirmed **enabled**, retention noted from the dashboard
-- [ ] `npm run db:backup` runs successfully against the production `DATABASE_URL` from an ops context
-- [ ] A scheduled job (cron / CI / provider task) runs `db:backup` on a defined cadence — **not** an in-app timer
-- [ ] Each backup (+ `.sha256`) is copied to durable storage **outside** the Render container
-- [ ] Retention policy applied (e.g. 7 daily / 4 weekly / 3 monthly); pruning never removes the newest
-- [ ] `npm run db:verify-restore` has been run against a real backup and passed (disposable DB)
-- [ ] Restore procedure (§3) rehearsed at least once end-to-end into a clean DB
-- [ ] `DATABASE_URL` and DB credentials exist **only** in the host environment — never in Git, logs, or error responses
-- [ ] `backups/`, `*.dump`, `*.sql` exports are git-ignored and never served by Express/Vercel/the admin dashboard
+- [x] Provider (Neon) automated backups confirmed **enabled**, retention noted from the dashboard — **6-hour history window, Free plan, confirmed 2026-09-16**
+- [x] `npm run db:backup` runs successfully against the production `DATABASE_URL` from an ops context — `.github/workflows/backup.yml` has run successfully on schedule (2026-09-14, -15, -16)
+- [x] A scheduled job (cron / CI / provider task) runs `db:backup` on a defined cadence — **not** an in-app timer — GitHub Actions cron, daily 02:00 UTC
+- [x] Each backup (+ `.sha256`) is copied to durable storage **outside** the Render container — GitHub Actions artifact storage, 90-day retention
+- [ ] Retention policy applied (e.g. 7 daily / 4 weekly / 3 monthly); pruning never removes the newest — **not yet**: current scheme is a flat 90-day artifact expiry, no daily/weekly/monthly tiering
+- [x] `npm run db:verify-restore` has been run against a real backup and passed (disposable DB) — 38/38 checks, 2026-09-16
+- [x] Restore procedure (§3) rehearsed at least once end-to-end into a clean DB — done locally into a disposable DB; a rehearsal against an actual second Neon/Render project is still recommended before relying on this in a real incident
+- [x] `DATABASE_URL` and DB credentials exist **only** in the host environment — never in Git, logs, or error responses — confirmed via `git ls-files` (only `.env.example` with placeholders is tracked) and the centralised error handler (`server/index.js`) never leaks DB errors to the client
+- [x] `backups/`, `*.dump`, `*.sql` exports are git-ignored and never served by Express/Vercel/the admin dashboard — confirmed in `.gitignore`
 - [ ] The on-call operator knows where backups live, how to restore, and who to contact
 - [ ] Timestamp of the latest verified-good backup is recorded and visible to on-call
