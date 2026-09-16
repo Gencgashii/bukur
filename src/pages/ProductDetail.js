@@ -118,7 +118,16 @@ const ProductDetail = () => {
     const update = () => setShowSticky(buyHidden && !footerVisible);
 
     const buyIo = new IntersectionObserver(
-      ([entry]) => { buyHidden = !entry.isIntersecting; update(); },
+      ([entry]) => {
+        // !isIntersecting is true both when the button has scrolled ABOVE
+        // the viewport (passed it — sticky should show) and when it hasn't
+        // scrolled into view yet from BELOW (page just loaded, above the
+        // fold — sticky must stay off, or it duplicates the real button
+        // before the visitor has even reached it). boundingClientRect.top
+        // < 0 is what actually distinguishes "passed" from "not there yet".
+        buyHidden = !entry.isIntersecting && entry.boundingClientRect.top < 0;
+        update();
+      },
       { rootMargin: '-80px 0px 0px 0px' }
     );
     buyIo.observe(buyEl);
