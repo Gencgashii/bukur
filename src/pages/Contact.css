@@ -8,8 +8,6 @@
   grid-template-columns: minmax(0, 1fr) minmax(320px, 0.9fr);
   gap: clamp(2.5rem, 7vw, 6rem);
   align-items: start;
-  border: 1px solid var(--hairline);
-  padding: clamp(2.5rem, 5vw, 4rem);
 }
 
 .contact__intro .u-display { margin: 1.25rem 0; }
@@ -33,6 +31,7 @@
 .contact__social a { color: var(--ink-soft); }
 
 /* form */
+.contact__form-wrap { margin-top: clamp(3rem, 6vw, 5rem); }
 .contact__form { display: grid; gap: 1.5rem; }
 .contact__row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
 .contact__field {
