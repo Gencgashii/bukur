@@ -13,6 +13,28 @@ const PHONE_RE = /^[+()\-\s0-9]{6,20}$/;
 // eslint-disable-next-line no-control-regex
 const CONTROL_CHARS_RE = /[\x00-\x1F\x7F]/g;
 
+// Real formats for exactly the countries BUKUR ships to (SUPPORTED_COUNTRIES).
+// Deliberately NOT a single "must be N digits" rule — that would reject every
+// legitimate GB postcode and misvalidate half the list. Add a pattern here
+// whenever a new country is added to SHIPPING_RATES.
+const POSTAL_CODE_PATTERNS = {
+  XK: /^\d{5}$/, // Kosovo
+  AL: /^\d{4}$/, // Albania
+  MK: /^\d{4}$/, // North Macedonia
+  AT: /^\d{4}$/, // Austria
+  BE: /^\d{4}$/, // Belgium
+  BG: /^\d{4}$/, // Bulgaria
+  HR: /^\d{5}$/, // Croatia
+  FR: /^\d{5}$/, // France
+  DE: /^\d{5}$/, // Germany
+  GR: /^\d{3}\s?\d{2}$/, // Greece, e.g. 104 31
+  IT: /^\d{5}$/, // Italy
+  SI: /^\d{4}$/, // Slovenia
+  SE: /^\d{3}\s?\d{2}$/, // Sweden, e.g. 111 22
+  CH: /^\d{4}$/, // Switzerland
+  GB: /^[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}$/i, // UK postcode, all valid shapes
+};
+
 function str(value, { field, min = 1, max = 200, required = true } = {}) {
   if (value === undefined || value === null) value = '';
   if (typeof value !== 'string') {
@@ -65,15 +87,6 @@ function validateOrderInput(body) {
     throw new AppError('invalid_input', 'A valid phone number is required.', 400);
   }
 
-  const addr =
-    body.shippingAddress && typeof body.shippingAddress === 'object' ? body.shippingAddress : {};
-  const shippingAddress = {
-    address: str(addr.address, { field: 'Address', min: 3, max: 200 }),
-    city: str(addr.city, { field: 'City', min: 2, max: 100 }),
-    state: str(addr.state, { field: 'State/Region', min: 0, max: 100, required: false }),
-    postalCode: str(addr.postalCode, { field: 'Postal code', min: 2, max: 20 }),
-  };
-
   const country = str(body.country, { field: 'Country', min: 2, max: 2 }).toUpperCase();
   if (!SUPPORTED_COUNTRIES.includes(country)) {
     throw new AppError(
@@ -98,6 +111,32 @@ function validateOrderInput(body) {
     throw new AppError('invalid_shipping_method', 'Unknown shipping method.', 400);
   }
   const shippingMethod = shippingMethodRaw;
+
+  // Home delivery needs a real address to ship to; studio pickup does not —
+  // the customer collects in person, so street/city/postcode are optional.
+  // A value is still sanitised + length-capped if the client sends one either
+  // way (never silently dropped), and a provided postal code is still format-
+  // checked below even when it wasn't required.
+  const needsAddress = shippingMethod !== 'pickup';
+  const addr =
+    body.shippingAddress && typeof body.shippingAddress === 'object' ? body.shippingAddress : {};
+  const shippingAddress = {
+    address: str(addr.address, { field: 'Address', min: needsAddress ? 3 : 0, max: 200, required: needsAddress }),
+    city: str(addr.city, { field: 'City', min: needsAddress ? 2 : 0, max: 100, required: needsAddress }),
+    state: str(addr.state, { field: 'State/Region', min: 0, max: 100, required: false }),
+    postalCode: str(addr.postalCode, {
+      field: 'Postal code',
+      min: needsAddress ? 2 : 0,
+      max: 20,
+      required: needsAddress,
+    }),
+  };
+  if (shippingAddress.postalCode) {
+    const pattern = POSTAL_CODE_PATTERNS[country];
+    if (pattern && !pattern.test(shippingAddress.postalCode)) {
+      throw new AppError('invalid_input', `Enter a valid postal code for ${country}.`, 400);
+    }
+  }
 
   if (!Array.isArray(body.items) || body.items.length === 0) {
     throw new AppError('invalid_input', 'Your cart is empty.', 400);
@@ -139,4 +178,4 @@ function validateOrderInput(body) {
   };
 }
 
-module.exports = { validateOrderInput, str, intInRange, positiveIntId, EMAIL_RE };
+module.exports = { validateOrderInput, str, intInRange, positiveIntId, EMAIL_RE, POSTAL_CODE_PATTERNS };

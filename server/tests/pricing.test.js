@@ -6,7 +6,9 @@
  */
 
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-not-used-for-anything-real-01';
-process.env.SHIPPING_RATES = 'XK:180,AL:480';
+// XK/AL rates (180/480) are asserted exactly by the pricing tests below; the
+// rest are here only so the postal-code-format tests can use a real country.
+process.env.SHIPPING_RATES = 'XK:180,AL:480,MK:480,DE:2000,GR:2000,SE:2000,GB:2000';
 process.env.TAX_RATE_BPS = '0';
 process.env.NODE_ENV = 'test';
 
@@ -141,4 +143,116 @@ test('validation: client total is captured but never trusted', () => {
   });
   assert.equal(v.clientTotalCents, 100);
   assert.ok(!('total' in v));
+});
+
+// ---------------------------------------------------------------------------
+// Delivery method: pickup vs home delivery
+// ---------------------------------------------------------------------------
+
+test('validation: home delivery (default/standard) still requires address, city, postal code', () => {
+  const base = {
+    customerName: 'A B', customerEmail: 'a@b.com', phone: '049123456', country: 'XK',
+    paymentMethod: 'bank_transfer',
+    items: [{ id: 1, quantity: 1 }],
+  };
+  assert.throws(
+    () => validateOrderInput({ ...base, shippingAddress: { city: 'Prishtina', postalCode: '10000' } }),
+    /Address is required/
+  );
+  assert.throws(
+    () => validateOrderInput({ ...base, shippingAddress: { address: 'Rr 1', postalCode: '10000' } }),
+    /City is required/
+  );
+  assert.throws(
+    () => validateOrderInput({ ...base, shippingAddress: { address: 'Rr 1', city: 'Prishtina' } }),
+    /Postal code is required/
+  );
+});
+
+test('validation: pickup does not require address, city or postal code', () => {
+  const v = validateOrderInput({
+    customerName: 'A B', customerEmail: 'a@b.com', phone: '049123456', country: 'XK',
+    paymentMethod: 'bank_transfer',
+    shippingMethod: 'pickup',
+    shippingAddress: {},
+    items: [{ id: 1, quantity: 1 }],
+  });
+  assert.equal(v.shippingMethod, 'pickup');
+  assert.equal(v.shippingAddress.address, '');
+  assert.equal(v.shippingAddress.city, '');
+  assert.equal(v.shippingAddress.postalCode, '');
+});
+
+test('validation: pickup still sanitises an address if one is sent anyway', () => {
+  const v = validateOrderInput({
+    customerName: 'A B', customerEmail: 'a@b.com', phone: '049123456', country: 'XK',
+    paymentMethod: 'bank_transfer',
+    shippingMethod: 'pickup',
+    shippingAddress: { address: '  Rr 1  ', city: 'Prishtina' },
+    items: [{ id: 1, quantity: 1 }],
+  });
+  assert.equal(v.shippingAddress.address, 'Rr 1');
+  assert.equal(v.shippingAddress.city, 'Prishtina');
+});
+
+test('validation: rejects an unknown shipping method regardless of address', () => {
+  assert.throws(() => validateOrderInput({
+    customerName: 'A B', customerEmail: 'a@b.com', phone: '049123456', country: 'XK',
+    paymentMethod: 'bank_transfer',
+    shippingMethod: 'drone_dropoff',
+    shippingAddress: { address: 'Rr 1', city: 'Prishtina', postalCode: '10000' },
+    items: [{ id: 1, quantity: 1 }],
+  }), /Unknown shipping method/);
+});
+
+// ---------------------------------------------------------------------------
+// Postal code: country-aware format, not a single fixed rule
+// ---------------------------------------------------------------------------
+
+test('validation: postal code accepts each supported country\'s real format', () => {
+  const cases = [
+    ['XK', '10000'],
+    ['AL', '1001'],
+    ['DE', '10115'],
+    ['GR', '104 31'],
+    ['SE', '111 22'],
+    ['GB', 'SW1A 1AA'],
+    ['GB', 'M1 1AE'],
+    ['GB', 'B33 8TH'],
+  ];
+  for (const [country, postalCode] of cases) {
+    const v = validateOrderInput({
+      customerName: 'A B', customerEmail: 'a@b.com', phone: '049123456', country,
+      paymentMethod: 'bank_transfer',
+      shippingAddress: { address: 'Rr 1', city: 'City', postalCode },
+      items: [{ id: 1, quantity: 1 }],
+    });
+    assert.equal(v.shippingAddress.postalCode, postalCode);
+  }
+});
+
+test('validation: postal code rejects an obviously wrong format for the selected country', () => {
+  assert.throws(() => validateOrderInput({
+    customerName: 'A B', customerEmail: 'a@b.com', phone: '049123456', country: 'GB',
+    paymentMethod: 'bank_transfer',
+    shippingAddress: { address: 'Rr 1', city: 'City', postalCode: '12345' }, // valid US zip, not a UK postcode
+    items: [{ id: 1, quantity: 1 }],
+  }), /valid postal code for GB/);
+
+  assert.throws(() => validateOrderInput({
+    customerName: 'A B', customerEmail: 'a@b.com', phone: '049123456', country: 'XK',
+    paymentMethod: 'bank_transfer',
+    shippingAddress: { address: 'Rr 1', city: 'City', postalCode: '1000' }, // 4 digits, Kosovo uses 5
+    items: [{ id: 1, quantity: 1 }],
+  }), /valid postal code for XK/);
+});
+
+test('validation: address accepts numbers, hyphens, commas, slashes and unit numbers', () => {
+  const v = validateOrderInput({
+    customerName: 'A B', customerEmail: 'a@b.com', phone: '049123456', country: 'XK',
+    paymentMethod: 'bank_transfer',
+    shippingAddress: { address: 'Rr. Nëna Terezë 12/3-A, Apt. 5', city: 'Prishtina', postalCode: '10000' },
+    items: [{ id: 1, quantity: 1 }],
+  });
+  assert.equal(v.shippingAddress.address, 'Rr. Nëna Terezë 12/3-A, Apt. 5');
 });

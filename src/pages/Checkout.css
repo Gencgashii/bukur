@@ -139,6 +139,18 @@
   letter-spacing: 0.01em;
 }
 
+.co__pickup {
+  border: 1px solid var(--hairline);
+  padding: 1.1rem 1.25rem;
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.86rem;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.co__pickup .u-fine { margin-bottom: 0.2rem; }
+.co__pickup .u-muted { font-size: 0.78rem; }
+
 .co__error {
   border: 1px solid var(--hairline);
   border-left: 2px solid #b42318;

@@ -7,6 +7,7 @@ import { track } from '../lib/analytics';
 import Img from '../components/Img';
 import Select from '../components/Select';
 import logo from '../assets/bukur-logo.png';
+import contactInfo from '../content/contact';
 import {
   BANK_DETAILS,
   PAYMENT_METHODS,
@@ -19,8 +20,46 @@ const money = (cents) => `€${(Number(cents || 0) / 100).toFixed(2)}`;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const PHONE_RE = /^[+()\-\s0-9]{6,20}$/;
 
+// Mirrors server/lib/validation.js POSTAL_CODE_PATTERNS — kept in sync by
+// hand (two small codebases, no shared package). The server remains
+// authoritative; this only gives an immediate, specific message instead of
+// a round trip for something the browser can already tell is wrong.
+const POSTAL_CODE_PATTERNS = {
+  XK: /^\d{5}$/,
+  AL: /^\d{4}$/,
+  MK: /^\d{4}$/,
+  AT: /^\d{4}$/,
+  BE: /^\d{4}$/,
+  BG: /^\d{4}$/,
+  HR: /^\d{5}$/,
+  FR: /^\d{5}$/,
+  DE: /^\d{5}$/,
+  GR: /^\d{3}\s?\d{2}$/,
+  IT: /^\d{5}$/,
+  SI: /^\d{4}$/,
+  SE: /^\d{3}\s?\d{2}$/,
+  CH: /^\d{4}$/,
+  GB: /^[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}$/i,
+};
+
+const REQUIRED_MESSAGES = {
+  firstName: 'Please enter your first name.',
+  lastName: 'Please enter your last name.',
+  address: 'Please enter your address.',
+  city: 'Please enter your city.',
+  postalCode: 'Please enter your postal code.',
+  email: 'Please enter your email address.',
+  phone: 'Please enter your phone number.',
+};
+
 const hasBankDetails = Boolean(BANK_DETAILS.holder && BANK_DETAILS.iban);
 const COUNTRY_OPTIONS = SHIPPING_COUNTRIES.map((c) => ({ value: c.code, label: c.label }));
+const studio = contactInfo.channels.find((c) => c.label === 'Studio');
+
+// Superset of every field validateField() knows about — always validated
+// (so a format error on an optional field, e.g. a stray postal code, is
+// still caught), independent of which subset is currently REQUIRED.
+const ALL_CHECKOUT_FIELDS = ['firstName', 'lastName', 'address', 'city', 'postalCode', 'email', 'phone'];
 
 // Only payment methods that can actually be completed today. Online card
 // (card_teb) is intentionally omitted — see server/payments/providers/teb.js.
@@ -86,24 +125,42 @@ const Checkout = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const requiredFields = useMemo(
-    () => ['firstName', 'lastName', 'address', 'city', 'postalCode', 'email', 'phone'],
-    []
-  );
+  // Address/city/postal code are only meaningful for home delivery — collect
+  // in studio needs just enough to identify and contact the customer.
+  const requiredFields = useMemo(() => {
+    const always = ['firstName', 'lastName', 'email', 'phone'];
+    return deliveryMethod === 'home' ? [...always, 'address', 'city', 'postalCode'] : always;
+  }, [deliveryMethod]);
+
+  // Stale errors/messages from a field that's no longer shown (or no longer
+  // required) must not silently block submission, and must not reappear with
+  // outdated text if the field is shown again later.
+  useEffect(() => {
+    setFieldErrors((fe) => ({ ...fe, address: '', city: '', postalCode: '' }));
+  }, [deliveryMethod]);
 
   const validateField = (name, value) => {
     const v = (value ?? '').trim();
     if (requiredFields.includes(name) && !v) {
-      return `${labelFor(name)} is required.`;
+      return REQUIRED_MESSAGES[name] || `${labelFor(name)} is required.`;
     }
     if (name === 'email' && v && !EMAIL_RE.test(v)) return 'Enter a valid email address.';
     if (name === 'phone' && v && !PHONE_RE.test(v)) return 'Enter a valid phone number.';
+    // Only checked for home delivery — the field is hidden for pickup, so it
+    // must never be able to block that submission even if it holds leftover
+    // text from before the customer switched delivery methods.
+    if (name === 'postalCode' && v && deliveryMethod === 'home') {
+      const pattern = POSTAL_CODE_PATTERNS[formData.country];
+      if (pattern && !pattern.test(v)) {
+        return `Enter a valid postal code for ${countryLabel}.`;
+      }
+    }
     return '';
   };
 
   const validateAll = () => {
     const next = {};
-    requiredFields.forEach((f) => {
+    ALL_CHECKOUT_FIELDS.forEach((f) => {
       const msg = validateField(f, formData[f]);
       if (msg) next[f] = msg;
     });
@@ -149,7 +206,7 @@ const Checkout = () => {
 
     const errs = validateAll();
     setFieldErrors(errs);
-    setTouched(Object.fromEntries(requiredFields.map((f) => [f, true])));
+    setTouched(Object.fromEntries(ALL_CHECKOUT_FIELDS.map((f) => [f, true])));
     if (Object.keys(errs).length) {
       setError('Please check the highlighted fields.');
       const first = document.querySelector('[aria-invalid="true"]');
@@ -321,10 +378,12 @@ const Checkout = () => {
                     <FieldError name="lastName" />
                   </label>
                 </div>
-                <label className="co__field">Address*
-                  <input type="text" autoComplete="street-address" placeholder="Street and number" {...fieldProps('address')} required />
-                  <FieldError name="address" />
-                </label>
+                {deliveryMethod === 'home' && (
+                  <label className="co__field">Address*
+                    <input type="text" autoComplete="street-address" placeholder="Street and number" {...fieldProps('address')} required />
+                    <FieldError name="address" />
+                  </label>
+                )}
                 <div className="co__field">Country*
                   <Select
                     autoComplete="country"
@@ -334,19 +393,29 @@ const Checkout = () => {
                     {...fieldProps('country')}
                   />
                 </div>
-                <div className="co__row co__row--3">
-                  <label className="co__field">City*
-                    <input type="text" autoComplete="address-level2" {...fieldProps('city')} required />
-                    <FieldError name="city" />
-                  </label>
-                  <label className="co__field">State / region
-                    <input type="text" autoComplete="address-level1" {...fieldProps('state')} />
-                  </label>
-                  <label className="co__field">Postal code*
-                    <input type="text" inputMode="text" autoComplete="postal-code" {...fieldProps('postalCode')} required />
-                    <FieldError name="postalCode" />
-                  </label>
-                </div>
+                {deliveryMethod === 'home' && (
+                  <div className="co__row co__row--3">
+                    <label className="co__field">City*
+                      <input type="text" autoComplete="address-level2" {...fieldProps('city')} required />
+                      <FieldError name="city" />
+                    </label>
+                    <label className="co__field">State / region
+                      <input type="text" autoComplete="address-level1" {...fieldProps('state')} />
+                    </label>
+                    <label className="co__field">Postal code*
+                      <input type="text" inputMode="text" autoComplete="postal-code" {...fieldProps('postalCode')} required />
+                      <FieldError name="postalCode" />
+                    </label>
+                  </div>
+                )}
+                {deliveryMethod === 'store' && studio && (
+                  <div className="co__pickup">
+                    <p className="u-fine">Collect at BUKUR Studio</p>
+                    <p>{studio.value}</p>
+                    {studio.note && <p className="u-muted">{studio.note}</p>}
+                    <p className="u-muted">We will confirm collection details by email after you place your order.</p>
+                  </div>
+                )}
               </div>
             </section>
 
