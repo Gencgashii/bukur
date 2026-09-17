@@ -19,6 +19,15 @@ const BRAND = 'BUKUR WORLD';
 
 const CURRENCY_SYMBOL = { eur: '€', usd: '$', gbp: '£' };
 
+// Real BUKUR studio details — same content as src/content/contact.js's
+// "Studio" channel (the two codebases don't share a package, so this is a
+// deliberate, small, by-hand copy of already-published business data, not a
+// fabricated address/schedule).
+const PICKUP_INFO = {
+  location: 'Prishtina, Kosovo',
+  note: 'Bukur World SHPK. Visits by appointment.',
+};
+
 function escapeHtml(value) {
   return String(value == null ? '' : value)
     .replace(/&/g, '&amp;')
@@ -137,6 +146,7 @@ function renderOrderConfirmation({ order, items = [], payment = null, contact = 
   const taxCents = Number(order.tax_cents) || 0;
   const totalCents = Number(order.total_cents) || subtotalCents + shippingCents - discountCents + taxCents;
 
+  const isPickup = String(order.shipping_method || '') === 'pickup';
   const addr = addressLines(order);
   const phone = String(order.phone || '').trim();
   const bank = pay.methodLabel === 'Bank transfer' && !pay.isPaid ? bankBlock(bankTransfer) : null;
@@ -167,9 +177,14 @@ function renderOrderConfirmation({ order, items = [], payment = null, contact = 
   if (taxCents > 0) t.push(`Tax: ${money(taxCents, currency)}`);
   t.push(`Total: ${money(totalCents, currency)} (${String(currency).toUpperCase()})`);
   t.push('');
-  t.push('SHIPPING INFORMATION');
+  t.push(isPickup ? 'PICKUP INFORMATION' : 'SHIPPING INFORMATION');
   t.push(String(order.customer_name || '').trim());
-  for (const line of addr) t.push(line);
+  if (isPickup) {
+    t.push(PICKUP_INFO.location);
+    t.push(PICKUP_INFO.note);
+  } else {
+    for (const line of addr) t.push(line);
+  }
   if (phone) t.push(`Phone: ${phone}`);
   t.push('');
   t.push('PAYMENT');
@@ -231,7 +246,11 @@ function renderOrderConfirmation({ order, items = [], payment = null, contact = 
       : '') +
     `<tr><td style="${cell}text-align:right;font-weight:bold;border-top:2px solid ${C.ink};">Total (${escapeHtml(String(currency).toUpperCase())})</td><td style="${cell}text-align:right;font-weight:bold;white-space:nowrap;border-top:2px solid ${C.ink};">${escapeHtml(money(totalCents, currency))}</td></tr>`;
 
-  const addrHtml = [escapeHtml(String(order.customer_name || '').trim()), ...addr.map(escapeHtml), phone ? `Phone: ${escapeHtml(phone)}` : '']
+  const addrHtml = [
+    escapeHtml(String(order.customer_name || '').trim()),
+    ...(isPickup ? [escapeHtml(PICKUP_INFO.location), escapeHtml(PICKUP_INFO.note)] : addr.map(escapeHtml)),
+    phone ? `Phone: ${escapeHtml(phone)}` : '',
+  ]
     .filter(Boolean)
     .join('<br>');
 
@@ -281,7 +300,7 @@ function renderOrderConfirmation({ order, items = [], payment = null, contact = 
 
         <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
           <tr><td style="padding-top:24px;">
-            <div style="${th}">Shipping information</div>
+            <div style="${th}">${isPickup ? 'Pickup information' : 'Shipping information'}</div>
             <div style="${cell}">${addrHtml}</div>
           </td></tr>
           <tr><td style="padding-top:20px;">
@@ -307,4 +326,85 @@ function renderOrderConfirmation({ order, items = [], payment = null, contact = 
   return { subject, html, text };
 }
 
-module.exports = { renderOrderConfirmation, escapeHtml, money, orderNumber };
+/**
+ * Internal "new order" notification for the store owner/admin — a plain
+ * operational alert, not a customer-branded email. Reuses the same trusted,
+ * persisted order data as renderOrderConfirmation; adds nothing new that
+ * needs its own escaping/validation story.
+ */
+function renderOwnerNotification({ order, items = [] } = {}) {
+  if (!order || !order.id) throw new Error('renderOwnerNotification: order is required');
+
+  const num = orderNumber(order.id);
+  const currency = order.currency || 'eur';
+  const isPickup = String(order.shipping_method || '') === 'pickup';
+  const date = formatDate(order.created_at);
+  const pay = paymentPresentation(order, null);
+
+  const lineItems = (Array.isArray(items) ? items : []).map((it) => {
+    const qty = Math.max(1, Number(it.quantity) || 1);
+    const unit = Number(it.price_cents) || 0;
+    return { name: String(it.name || 'Item'), size: String(it.size || '').trim(), qty, unitCents: unit, lineCents: unit * qty };
+  });
+
+  const subtotalCents = Number(order.subtotal_cents) || lineItems.reduce((s, l) => s + l.lineCents, 0);
+  const shippingCents = Number(order.shipping_cents) || 0;
+  const totalCents = Number(order.total_cents) || subtotalCents + shippingCents;
+  const addr = addressLines(order);
+  const phone = String(order.phone || '').trim();
+  const customerName = String(order.customer_name || '').trim() || '(no name given)';
+  const customerEmail = String(order.customer_email || '').trim();
+
+  const subject = `${BRAND} — New order ${num} (${money(totalCents, currency)})`;
+
+  const t = [];
+  t.push(`New order ${num} — ${date}`);
+  t.push('');
+  t.push(`Customer: ${customerName}`);
+  t.push(`Email: ${customerEmail}`);
+  if (phone) t.push(`Phone: ${phone}`);
+  t.push('');
+  t.push(isPickup ? 'PICKUP' : 'DELIVERY');
+  if (isPickup) {
+    t.push(PICKUP_INFO.location);
+    t.push(PICKUP_INFO.note);
+  } else {
+    for (const line of addr) t.push(line);
+  }
+  t.push('');
+  t.push('ITEMS');
+  for (const l of lineItems) {
+    const sz = l.size ? `  Size ${l.size}` : '';
+    t.push(`- ${l.name}${sz}  x${l.qty}  ${money(l.lineCents, currency)}`);
+  }
+  t.push('');
+  t.push(`Subtotal: ${money(subtotalCents, currency)}`);
+  t.push(`Shipping: ${money(shippingCents, currency)}`);
+  t.push(`Total: ${money(totalCents, currency)}`);
+  t.push('');
+  t.push(`Payment: ${pay.methodLabel} — ${pay.statusLabel}`);
+  t.push('');
+  t.push(`Open this order in /admin/orders/${order.id}`);
+  const text = t.join('\n');
+
+  const itemsHtml = lineItems
+    .map((l) => `<li>${escapeHtml(l.name)}${l.size ? ` (Size ${escapeHtml(l.size)})` : ''} — x${l.qty} — ${escapeHtml(money(l.lineCents, currency))}</li>`)
+    .join('');
+  const addrHtml = isPickup
+    ? `${escapeHtml(PICKUP_INFO.location)}<br>${escapeHtml(PICKUP_INFO.note)}`
+    : addr.map(escapeHtml).join('<br>');
+  const html = `<!doctype html><html><body style="font:14px/1.6 Arial,Helvetica,sans-serif;color:#2B2622;">
+<h2 style="margin:0 0 12px;">New order ${escapeHtml(num)} — ${escapeHtml(money(totalCents, currency))}</h2>
+<p><strong>Customer:</strong> ${escapeHtml(customerName)} &lt;${escapeHtml(customerEmail)}&gt;${phone ? ` — ${escapeHtml(phone)}` : ''}</p>
+<p><strong>${isPickup ? 'Pickup' : 'Delivery'}:</strong><br>${addrHtml}</p>
+<p><strong>Items:</strong></p>
+<ul>${itemsHtml}</ul>
+<p>Subtotal ${escapeHtml(money(subtotalCents, currency))} &nbsp;·&nbsp; Shipping ${escapeHtml(money(shippingCents, currency))} &nbsp;·&nbsp; <strong>Total ${escapeHtml(money(totalCents, currency))}</strong></p>
+<p><strong>Payment:</strong> ${escapeHtml(pay.methodLabel)} — ${escapeHtml(pay.statusLabel)}</p>
+<p style="color:#6B6259;font-size:12px;">Order id ${order.id} · ${escapeHtml(date)}</p>
+</body></html>`;
+
+  return { subject, html, text };
+}
+
+module.exports = { renderOrderConfirmation, renderOwnerNotification, escapeHtml, money, orderNumber };

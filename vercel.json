@@ -1,5 +1,9 @@
 {
   "rewrites": [
+    {
+      "source": "/sitemap-products.xml",
+      "destination": "https://bukur-api.onrender.com/sitemap-products.xml"
+    },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [

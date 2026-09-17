@@ -13,8 +13,11 @@ const CSRF_HEADER = 'x-csrf-token';
 // 12h default, matched to the JWT lifetime.
 const MAX_AGE_MS = 12 * 60 * 60 * 1000;
 
+const JWT_ALGORITHM = 'HS256';
+
 function signToken(admin) {
   return jwt.sign({ id: admin.id, email: admin.email, role: 'admin' }, config.JWT_SECRET, {
+    algorithm: JWT_ALGORITHM,
     expiresIn: config.JWT_EXPIRES_IN,
   });
 }
@@ -64,7 +67,7 @@ function requireAdmin(req, _res, next) {
   const token = cookie || bearer;
   if (!token) return next(new AppError('unauthorized', 'Authentication required.', 401));
   try {
-    const payload = jwt.verify(token, config.JWT_SECRET);
+    const payload = jwt.verify(token, config.JWT_SECRET, { algorithms: [JWT_ALGORITHM] });
     if (payload.role !== 'admin') {
       return next(new AppError('forbidden', 'Admin access required.', 403));
     }

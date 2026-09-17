@@ -139,6 +139,15 @@ const EMAIL_FROM = optional('EMAIL_FROM', '');
 const EMAIL_REPLY_TO = optional('EMAIL_REPLY_TO', '');
 const EMAIL_STORE_URL = optional('EMAIL_STORE_URL', '').replace(/\/$/, '');
 
+// Where the "new order" owner/admin notification goes. Optional — if unset,
+// that notification is simply skipped (same graceful-skip shape as the
+// customer confirmation when EMAIL_ENABLED is false). Never hard-code a
+// personal address in source; this is the only place it may come from.
+const OWNER_NOTIFICATION_EMAIL = optional('OWNER_NOTIFICATION_EMAIL', '').trim();
+if (OWNER_NOTIFICATION_EMAIL && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(OWNER_NOTIFICATION_EMAIL)) {
+  throw new Error('OWNER_NOTIFICATION_EMAIL is set but is not a valid email address.');
+}
+
 const NON_PROD_EMAIL_PROVIDERS = new Set(['console', 'memory']);
 if (EMAIL_ENABLED) {
   if (!EMAIL_FROM) {
@@ -179,4 +188,5 @@ module.exports = {
   EMAIL_FROM,
   EMAIL_REPLY_TO,
   EMAIL_STORE_URL,
+  OWNER_NOTIFICATION_EMAIL,
 };

@@ -21,6 +21,7 @@ const { adminRouter } = require('./admin/router');
 const { getStorage } = require('./lib/storage');
 const { getEmailService } = require('./lib/email');
 const { sendOrderConfirmationForOrder } = require('./lib/email/sendOrderConfirmation');
+const { sendOwnerNotificationForOrder } = require('./lib/email/sendOwnerNotification');
 const {
   authLimiter,
   orderLimiter,
@@ -84,6 +85,36 @@ app.get('/health', async (_req, res) => {
   } catch (_error) {
     res.status(503).json({ ok: false, message: 'Database unavailable.' });
   }
+});
+
+// ---------------------------------------------------------------------------
+// Product sitemap — the static public/sitemap.xml (an index) references this
+// as its dynamic child. Product detail pages are DB-driven and change over
+// time, so this is generated per-request from the real catalog rather than
+// baked into the static frontend build. See public/sitemap.xml / robots.txt.
+// ---------------------------------------------------------------------------
+app.get('/sitemap-products.xml', async (_req, res) => {
+  const base = (config.EMAIL_STORE_URL || 'https://bukurworldshop.com').replace(/\/$/, '');
+  const rows = (
+    await query(
+      `SELECT id, updated_at FROM products WHERE status = 'published' AND archived = false ORDER BY id`
+    )
+  ).rows;
+  const escapeXml = (s) =>
+    String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const urls = rows
+    .map((p) => {
+      const lastmod = p.updated_at ? new Date(p.updated_at).toISOString().slice(0, 10) : '';
+      return (
+        `<url><loc>${escapeXml(`${base}/product/${p.id}`)}</loc>` +
+        (lastmod ? `<lastmod>${lastmod}</lastmod>` : '') +
+        `<changefreq>weekly</changefreq><priority>0.6</priority></url>`
+      );
+    })
+    .join('');
+  res.set('Content-Type', 'application/xml; charset=utf-8');
+  res.set('Cache-Control', 'public, max-age=3600'); // an hour is plenty for catalog-change freshness
+  res.send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`);
 });
 
 // ---------------------------------------------------------------------------
@@ -319,6 +350,15 @@ app.post('/store/custom/orders', orderLimiter, async (req, res) => {
     console.warn('[order] confirmation email unexpected error', { order: orderNumber(result.order.id) });
   }
 
+  // Owner/admin new-order notification — same "never touch the customer's
+  // result" guarantee. Its own idempotency columns mean this can never
+  // duplicate or be suppressed by the customer email's own retry/failure.
+  try {
+    await sendOwnerNotificationForOrder(result.order.id, { trigger: 'order_created' });
+  } catch (err) {
+    console.warn('[order] owner notification unexpected error', { order: orderNumber(result.order.id) });
+  }
+
   res.status(201).json(publicOrderResponse(result.order, result.totals, requiresPayment, emailStatus));
 });
 
@@ -352,6 +392,7 @@ function createOrderTransaction(input, idempotencyKey, fingerprint) {
       validatedItems: input.items,
       productsById,
       country: input.country,
+      shippingMethod: input.shippingMethod,
     });
 
     // Stock integrity for inventory-tracked products only.
@@ -493,10 +534,13 @@ app.get('/store/custom/payments/:paymentId/status', paymentLimiter, async (req, 
   if (!Number.isInteger(paymentId) || paymentId <= 0) {
     throw new AppError('invalid_input', 'Invalid payment id.', 400);
   }
-  const row = await payments.getPaymentStatus(paymentId);
+  // Requires the opaque token handed back from /payments/initiate — payment
+  // ids are sequential/enumerable, so without this anyone could poll
+  // arbitrary ids and learn other customers' payment status.
+  const token = typeof req.query.token === 'string' ? req.query.token : '';
+  const row = await payments.getPaymentStatus(paymentId, token);
   // Minimal disclosure: enough for a return page to poll, without exposing
-  // order amounts/ids for arbitrary (enumerable) payment ids. A signed return
-  // token is the proper control and will be added with the real provider flow.
+  // order amounts/ids.
   res.json({
     paymentId: row.id,
     status: row.status,

@@ -48,5 +48,9 @@ export const SHIPPING_COUNTRIES = [
   { code: 'GB', label: 'United Kingdom', estimateCents: 2000 },
 ];
 
-export const shippingEstimateCents = (countryCode) =>
-  SHIPPING_COUNTRIES.find((c) => c.code === countryCode)?.estimateCents ?? 0;
+// Pre-submit ESTIMATE only (see note above) — mirrors the server's rule that
+// studio pickup has no delivery cost, independent of country.
+export const shippingEstimateCents = (countryCode, shippingMethod = 'standard') =>
+  shippingMethod === 'pickup'
+    ? 0
+    : SHIPPING_COUNTRIES.find((c) => c.code === countryCode)?.estimateCents ?? 0;

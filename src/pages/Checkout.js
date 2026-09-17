@@ -105,10 +105,12 @@ const Checkout = () => {
   const [touched, setTouched] = useState({});
   const idempotencyKeyRef = useRef(null);
 
-  // Server is authoritative for the final total. Tax is 0 and shipping is a flat
-  // per-country rate the client also knows, so the figure below matches the
-  // server's — it is shown as the Total, not an "estimate".
-  const shippingCents = shippingEstimateCents(formData.country);
+  // Server is authoritative for the final total. Tax is 0 and shipping is a
+  // flat per-country rate (or 0 for pickup) the client also knows, so the
+  // figure below matches the server's — it is shown as the Total, not an
+  // "estimate".
+  const shippingMethod = deliveryMethod === 'store' ? 'pickup' : 'standard';
+  const shippingCents = shippingEstimateCents(formData.country, shippingMethod);
   const subtotal = getCartTotal();
   const grandTotal = subtotal + shippingCents / 100;
   const countryLabel =
@@ -230,7 +232,7 @@ const Checkout = () => {
         phone: formData.phone,
         country: formData.country,
         paymentMethod: formData.paymentMethod,
-        shippingMethod: deliveryMethod === 'store' ? 'pickup' : 'standard',
+        shippingMethod,
         shippingAddress: {
           address: formData.address,
           city: formData.city,

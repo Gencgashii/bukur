@@ -10,17 +10,18 @@ const { SHIPPING_RATES_CENTS, TAX_RATE_BPS, CURRENCY } = require('../config');
  *   validatedItems : [{ productId, size, quantity }]        (from validation.js)
  *   productsById    : Map<number, { id, price_cents, status, title, track_inventory, stock, sizes }>
  *   country        : ISO-2 country code (already checked as supported)
+ *   shippingMethod : 'standard' | 'pickup' (already checked as supported)
  *
  * Rules:
  *   subtotal  = Σ (DB unit price_cents * quantity)          — client price ignored
- *   shipping  = SHIPPING_RATES_CENTS[country]               — client shipping ignored
+ *   shipping  = 0 for pickup, else SHIPPING_RATES_CENTS[country] — client shipping/method ignored
  *   discount  = 0                                           — no server promo model yet
  *   tax       = round(subtotal * TAX_RATE_BPS / 10000)      — 0 unless configured
  *   total     = subtotal + shipping - discount + tax
  *
  * Throws AppError (safe message) for any product/size problem.
  */
-function computeOrderTotals({ validatedItems, productsById, country }) {
+function computeOrderTotals({ validatedItems, productsById, country, shippingMethod }) {
   if (!SHIPPING_RATES_CENTS[country]) {
     throw new AppError('unsupported_country', 'Shipping is not available to that country.', 400);
   }
@@ -58,7 +59,9 @@ function computeOrderTotals({ validatedItems, productsById, country }) {
   });
 
   const subtotalCents = lines.reduce((sum, l) => sum + l.lineTotalCents, 0);
-  const shippingCents = SHIPPING_RATES_CENTS[country];
+  // Studio pickup: the customer collects in person, so there is no delivery
+  // cost — independent of country, and never influenced by client input.
+  const shippingCents = shippingMethod === 'pickup' ? 0 : SHIPPING_RATES_CENTS[country];
   const discountCents = 0; // no authoritative server-side promotion model yet
   const taxCents = TAX_RATE_BPS > 0 ? Math.round((subtotalCents * TAX_RATE_BPS) / 10000) : 0;
   const totalCents = subtotalCents + shippingCents - discountCents + taxCents;

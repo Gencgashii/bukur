@@ -87,6 +87,15 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirmation_email_sent_at  TIMESTAM
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirmation_email_attempts INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirmation_email_error    TEXT    NOT NULL DEFAULT '';  -- short category, never a payload
 
+-- Owner/admin new-order notification. Same operational-tracking-only shape as
+-- confirmation_email_* above (mirrors it deliberately) — this is a SEPARATE
+-- claim/attempt counter so a customer-email failure/retry can never suppress
+-- or duplicate the owner notification, or vice versa.
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS owner_notification_status   TEXT    NOT NULL DEFAULT 'pending';
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS owner_notification_sent_at  TIMESTAMPTZ;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS owner_notification_attempts INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS owner_notification_error    TEXT    NOT NULL DEFAULT '';
+
 CREATE UNIQUE INDEX IF NOT EXISTS orders_idempotency_key_uidx
   ON orders (idempotency_key) WHERE idempotency_key IS NOT NULL;
 
@@ -111,6 +120,10 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'orders_confirmation_email_status_chk') THEN
     ALTER TABLE orders ADD CONSTRAINT orders_confirmation_email_status_chk
       CHECK (confirmation_email_status IN ('pending','sent','failed','skipped'));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'orders_owner_notification_status_chk') THEN
+    ALTER TABLE orders ADD CONSTRAINT orders_owner_notification_status_chk
+      CHECK (owner_notification_status IN ('pending','sent','failed','skipped'));
   END IF;
 END $$;
 

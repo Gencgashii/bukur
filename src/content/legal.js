@@ -9,6 +9,10 @@
  * operates. Have it reviewed by legal counsel before relying on it.
  */
 
+// This is the canonical legal entity name — public/index.html's Organization
+// JSON-LD `legalName` is kept in sync with this value by hand (a static HTML
+// file can't import this module). If the registered name ever changes,
+// update both places together.
 const company = 'Bukur World SHPK';
 const place = 'Prishtina, Kosovo';
 const email = 'info@bukur.co';

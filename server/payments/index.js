@@ -14,12 +14,26 @@
  * authenticated admin action for offline methods.
  */
 
+const crypto = require('crypto');
 const { withTransaction, query } = require('../db');
 const { AppError } = require('../lib/errors');
+const { safeEqual } = require('../lib/cookies');
 const config = require('../config');
 const tebProvider = require('./providers/teb');
 const mockProvider = require('./providers/mock');
 const { PAYMENT_STATUS, TERMINAL, ALLOWED_TRANSITIONS, canTransition } = require('./state');
+
+/**
+ * Opaque, unguessable per-payment token for the public "payment return"
+ * status endpoint. Payment ids are sequential and otherwise enumerable —
+ * without this, anyone could poll GET /payments/:id/status for arbitrary ids
+ * and learn other customers' payment status. Derived (not stored) from the
+ * existing JWT_SECRET with a distinct context string, so this never needs a
+ * schema change and can never be confused with an actual JWT.
+ */
+function paymentReturnToken(paymentId) {
+  return crypto.createHmac('sha256', config.JWT_SECRET).update(`payment-return:${paymentId}`).digest('hex');
+}
 
 /** Which provider implementation handles a given payment method. */
 function providerForMethod(method) {
@@ -112,6 +126,7 @@ async function initiatePayment({ orderId, idempotencyKey }) {
           status: p.status,
           amountCents: p.amount_cents,
           providerReference: p.provider_reference,
+          returnToken: paymentReturnToken(p.id),
         };
       }
     }
@@ -165,6 +180,7 @@ async function initiatePayment({ orderId, idempotencyKey }) {
       status: PAYMENT_STATUS.PENDING,
       amountCents,
       providerReference: started.providerReference || '',
+      returnToken: paymentReturnToken(payment.id),
       requiresRedirect: Boolean(started.requiresRedirect),
       redirectUrl: started.redirectUrl || null,
     };
@@ -261,8 +277,18 @@ async function applyProviderResult(providerId, result) {
   });
 }
 
-/** Read-only status lookup for the customer "return" page. DB is the source of truth. */
-async function getPaymentStatus(paymentId) {
+/**
+ * Read-only status lookup for the customer "return" page. DB is the source
+ * of truth. `token` must match the one handed back from initiatePayment() —
+ * without it this would let anyone enumerate sequential payment ids and
+ * learn arbitrary customers' payment status. A wrong or missing token is
+ * indistinguishable from a non-existent id (same error, same status code),
+ * so it discloses nothing about which payment ids are real.
+ */
+async function getPaymentStatus(paymentId, token) {
+  if (!token || !safeEqual(paymentReturnToken(paymentId), token)) {
+    throw new AppError('payment_not_found', 'Payment not found.', 404);
+  }
   const res = await query(
     `SELECT p.id, p.status, p.amount_cents, p.currency, p.order_id, o.payment_status AS order_payment_status
        FROM payments p JOIN orders o ON o.id = p.order_id
@@ -333,4 +359,5 @@ module.exports = {
   applyProviderResult,
   getPaymentStatus,
   adminSetPaymentOutcome,
+  paymentReturnToken,
 };

@@ -15,7 +15,7 @@ process.env.EMAIL_FROM = 'BUKUR WORLD <orders@bukur.test>';
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { renderOrderConfirmation, money } = require('../lib/email/render');
+const { renderOrderConfirmation, renderOwnerNotification, money } = require('../lib/email/render');
 const {
   assertSafeRecipient,
   sanitizeHeaderText,
@@ -97,6 +97,39 @@ test('template: discount + tax rows appear only when > 0', () => {
   assert.ok(withExtras.text.includes('Discount: -€5.00'));
   assert.ok(withExtras.text.includes('Tax: €10.00'));
   assert.ok(withExtras.html.includes('-€5.00'));
+});
+
+// --------------------------------------------------------------------------
+// Delivery method: heading + content differ for pickup vs. home delivery
+// --------------------------------------------------------------------------
+
+test('template: home delivery uses "SHIPPING INFORMATION" and shows the address', () => {
+  const { html, text } = renderOrderConfirmation({ order: baseOrder, items }); // shipping_method: 'standard'
+  assert.ok(text.includes('SHIPPING INFORMATION'));
+  assert.ok(!text.includes('PICKUP INFORMATION'));
+  assert.ok(html.includes('Shipping information'));
+  assert.ok(!html.includes('Pickup information'));
+  assert.ok(text.includes('Prishtina'), 'address city still present for home delivery');
+});
+
+test('template: studio pickup uses "PICKUP INFORMATION" and shows the real studio details, not an address', () => {
+  const pickupOrder = {
+    ...baseOrder,
+    shipping_method: 'pickup',
+    shipping_address: { address: '', city: '', state: '', postalCode: '' },
+    shipping_cents: 0,
+    total_cents: baseOrder.total_cents - baseOrder.shipping_cents,
+  };
+  const { html, text } = renderOrderConfirmation({ order: pickupOrder, items });
+  assert.ok(text.includes('PICKUP INFORMATION'));
+  assert.ok(!text.includes('SHIPPING INFORMATION'));
+  assert.ok(html.includes('Pickup information'));
+  assert.ok(!html.includes('Shipping information'));
+  // real BUKUR studio details (same content as src/content/contact.js), not a
+  // fabricated address, and no leftover empty address fields.
+  assert.ok(text.includes('Prishtina, Kosovo'));
+  assert.ok(text.includes('Bukur World SHPK. Visits by appointment.'));
+  assert.ok(!text.includes('10000'), 'no leftover postal code text for pickup');
 });
 
 test('template: no undefined / null / NaN leaks into output', () => {
@@ -371,4 +404,49 @@ test('config: production + non-prod provider throws at load (fail obvious)', () 
     bust();
     require('../config');
   }
+});
+
+// ---------------------------------------------------------------------------
+// Owner/admin new-order notification — separate template, same trusted data
+// ---------------------------------------------------------------------------
+
+test('owner notification: renders customer contact info, items and totals for home delivery', () => {
+  const { subject, html, text } = renderOwnerNotification({ order: baseOrder, items });
+  assert.match(subject, /New order BK-000142/);
+  assert.ok(subject.includes('€791.80'));
+  for (const needle of ['Elira Krasniqi', 'elira@example.com', '+383 49 123 456', 'Signature Bow Slingback', 'Veil Mesh Pump', '€791.80']) {
+    assert.ok(text.includes(needle), `TEXT missing: ${needle}`);
+    assert.ok(html.includes(needle) || html.includes(needle.replace('+', '')), `HTML missing: ${needle}`);
+  }
+  assert.ok(text.includes('DELIVERY'));
+  assert.ok(!text.includes('PICKUP'));
+  assert.ok(text.includes('Prishtina'));
+});
+
+test('owner notification: pickup orders show real studio info, not an address, and PICKUP heading', () => {
+  const pickupOrder = {
+    ...baseOrder,
+    shipping_method: 'pickup',
+    shipping_address: { address: '', city: '', state: '', postalCode: '' },
+    shipping_cents: 0,
+    total_cents: baseOrder.total_cents - baseOrder.shipping_cents,
+  };
+  const { text } = renderOwnerNotification({ order: pickupOrder, items });
+  assert.ok(text.includes('PICKUP'));
+  assert.ok(!text.includes('\nDELIVERY\n'));
+  assert.ok(text.includes('Prishtina, Kosovo'));
+  assert.ok(text.includes('Bukur World SHPK. Visits by appointment.'));
+  assert.ok(text.includes('Shipping: €0.00'));
+});
+
+test('owner notification: customer-supplied name is HTML-escaped (no injection into the internal email)', () => {
+  const malicious = { ...baseOrder, customer_name: '<script>alert(1)</script>' };
+  const { html } = renderOwnerNotification({ order: malicious, items });
+  assert.ok(!html.includes('<script>alert(1)</script>'));
+  assert.ok(html.includes('&lt;script&gt;'));
+});
+
+test('owner notification: throws for a malformed order rather than silently emailing nothing useful', () => {
+  assert.throws(() => renderOwnerNotification({ order: null, items }));
+  assert.throws(() => renderOwnerNotification({ order: {}, items }));
 });

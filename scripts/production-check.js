@@ -221,6 +221,13 @@ report('JWT_EXPIRES_IN', { scope: 'server', status: env('JWT_EXPIRES_IN') || 'de
       status: !storeUrl ? '(unset — optional)' : isHttpsUrl(storeUrl) ? 'configured (optional)' : 'INVALID: not https://',
       kind: storeUrl && !isHttpsUrl(storeUrl) ? 'block' : 'info',
     });
+    const ownerEmail = env('OWNER_NOTIFICATION_EMAIL');
+    const ownerOk = !ownerEmail || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(ownerEmail);
+    report('OWNER_NOTIFICATION_EMAIL', {
+      scope: 'server',
+      status: !ownerEmail ? '(unset — new orders will not notify anyone)' : ownerOk ? 'configured' : 'INVALID: not an email address',
+      kind: !ownerEmail ? 'warn' : ownerOk ? 'ok' : 'block',
+    });
     if (provider === 'resend') {
       const key = env('RESEND_API_KEY');
       report('RESEND_API_KEY', {
@@ -231,7 +238,7 @@ report('JWT_EXPIRES_IN', { scope: 'server', status: env('JWT_EXPIRES_IN') || 'de
       report('RESEND_API_KEY', { scope: 'server', secret: true, status: 'n/a (provider != resend)', kind: 'info' });
     }
   } else {
-    for (const k of ['EMAIL_PROVIDER', 'EMAIL_FROM', 'EMAIL_REPLY_TO', 'EMAIL_STORE_URL']) {
+    for (const k of ['EMAIL_PROVIDER', 'EMAIL_FROM', 'EMAIL_REPLY_TO', 'EMAIL_STORE_URL', 'OWNER_NOTIFICATION_EMAIL']) {
       report(k, { scope: 'server', status: 'n/a (EMAIL_ENABLED != true)', kind: 'info' });
     }
     report('RESEND_API_KEY', { scope: 'server', secret: true, status: 'n/a (email disabled)', kind: 'info' });
@@ -251,7 +258,11 @@ report('JWT_EXPIRES_IN', { scope: 'server', status: env('JWT_EXPIRES_IN') || 'de
 }
 
 // ---- pricing / shipping (server-authoritative, non-secret) ----
-report('SHIPPING_RATES', { scope: 'server', status: env('SHIPPING_RATES') || 'default XK:180,AL:480', kind: 'info' });
+report('SHIPPING_RATES', {
+  scope: 'server',
+  status: env('SHIPPING_RATES') || 'default (15 countries incl. XK:200,AL:480 — see server/config.js)',
+  kind: 'info',
+});
 report('TAX_RATE_BPS', { scope: 'server', status: env('TAX_RATE_BPS') || '0', kind: 'info' });
 report('CURRENCY', { scope: 'server', status: env('CURRENCY') || 'eur', kind: 'info' });
 report('ALLOW_ADMIN_REGISTER', {

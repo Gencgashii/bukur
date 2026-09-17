@@ -36,14 +36,79 @@ test('pricing: subtotal comes from the DB price, not the client', () => {
   assert.equal(totals.totalCents, 29180);
 });
 
-test('pricing: shipping is derived from country config only', () => {
+test('pricing: shipping is derived from country config only (home delivery)', () => {
   const productsById = makeProducts([
     { id: 1, title: 'ICON', price_cents: 10000, status: 'published', sizes: [] },
   ]);
-  const xk = computeOrderTotals({ validatedItems: [{ productId: 1, quantity: 1 }], productsById, country: 'XK' });
-  const al = computeOrderTotals({ validatedItems: [{ productId: 1, quantity: 1 }], productsById, country: 'AL' });
+  const xk = computeOrderTotals({ validatedItems: [{ productId: 1, quantity: 1 }], productsById, country: 'XK', shippingMethod: 'standard' });
+  const al = computeOrderTotals({ validatedItems: [{ productId: 1, quantity: 1 }], productsById, country: 'AL', shippingMethod: 'standard' });
   assert.equal(xk.shippingCents, 180);
   assert.equal(al.shippingCents, 480);
+});
+
+// ---------------------------------------------------------------------------
+// Studio pickup: shipping is always 0, regardless of country or client input
+// ---------------------------------------------------------------------------
+
+test('pricing: studio pickup is always free shipping, independent of country', () => {
+  const productsById = makeProducts([
+    { id: 1, title: 'ICON', price_cents: 10000, status: 'published', sizes: [] },
+  ]);
+  const xk = computeOrderTotals({ validatedItems: [{ productId: 1, quantity: 1 }], productsById, country: 'XK', shippingMethod: 'pickup' });
+  const gb = computeOrderTotals({ validatedItems: [{ productId: 1, quantity: 1 }], productsById, country: 'GB', shippingMethod: 'pickup' });
+  assert.equal(xk.shippingCents, 0);
+  assert.equal(xk.totalCents, 10000);
+  assert.equal(gb.shippingCents, 0);
+  assert.equal(gb.totalCents, 10000);
+});
+
+test('pricing: pickup ignores a malicious client-supplied shipping amount', () => {
+  const productsById = makeProducts([{ id: 1, title: 'ICON', price_cents: 10000, status: 'published', sizes: [] }]);
+  const input = validateOrderInput({
+    customerName: 'A B', customerEmail: 'a@b.com', phone: '049123456', country: 'XK',
+    paymentMethod: 'bank_transfer', shippingMethod: 'pickup',
+    shippingAddress: {},
+    items: [{ id: 1, quantity: 1 }],
+    // attacker-supplied fields that validateOrderInput must simply not read
+    shippingCents: 99999, shipping: 99999,
+  });
+  const totals = computeOrderTotals({
+    validatedItems: input.items, productsById, country: input.country, shippingMethod: input.shippingMethod,
+  });
+  assert.equal(totals.shippingCents, 0);
+  assert.equal(totals.totalCents, 10000);
+});
+
+test('pricing: pickup ignores a malicious client-supplied total', () => {
+  const productsById = makeProducts([{ id: 1, title: 'ICON', price_cents: 10000, status: 'published', sizes: [] }]);
+  const input = validateOrderInput({
+    customerName: 'A B', customerEmail: 'a@b.com', phone: '049123456', country: 'XK',
+    paymentMethod: 'bank_transfer', shippingMethod: 'pickup',
+    shippingAddress: {},
+    items: [{ id: 1, quantity: 1 }],
+    total: 0.01,
+  });
+  assert.equal(input.clientTotalCents, 1); // captured for logging only
+  const totals = computeOrderTotals({
+    validatedItems: input.items, productsById, country: input.country, shippingMethod: input.shippingMethod,
+  });
+  assert.equal(totals.totalCents, 10000); // real price + 0 shipping, not 1
+});
+
+test('pricing: home delivery ignores a malicious client-supplied shipping amount', () => {
+  const productsById = makeProducts([{ id: 1, title: 'ICON', price_cents: 10000, status: 'published', sizes: [] }]);
+  const input = validateOrderInput({
+    customerName: 'A B', customerEmail: 'a@b.com', phone: '049123456', country: 'AL',
+    paymentMethod: 'bank_transfer', shippingMethod: 'standard',
+    shippingAddress: { address: 'Rr 1', city: 'Tirana', postalCode: '1001' },
+    items: [{ id: 1, quantity: 1 }],
+    shippingCents: 1, // attacker wants free/near-free shipping to a 480-rate country
+  });
+  const totals = computeOrderTotals({
+    validatedItems: input.items, productsById, country: input.country, shippingMethod: input.shippingMethod,
+  });
+  assert.equal(totals.shippingCents, 480); // real AL rate, not the injected 1
+  assert.equal(totals.totalCents, 10480);
 });
 
 test('pricing: unknown product is rejected', () => {

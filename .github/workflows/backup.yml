@@ -28,10 +28,47 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-client-17
 
-      - name: Run pg_dump
+      # A single failed attempt is not necessarily a broken pipeline — Neon's
+      # free tier can suspend an idle database and take a moment to resume,
+      # and any hosted-Postgres connection can hit a transient blip. Retry a
+      # few times with a short backoff before treating it as a real failure.
+      # pg_dump's own stderr is never swallowed (scripts/backup-db.js pipes it
+      # straight through), so the exact reason for any failure is visible in
+      # this step's log — never in a secret-bearing form.
+      - name: Run pg_dump (retries on transient failure)
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: node scripts/backup-db.js
+        run: |
+          attempt=1
+          max_attempts=3
+          until node scripts/backup-db.js; do
+            status=$?
+            if [ "$attempt" -ge "$max_attempts" ]; then
+              echo "::error::pg_dump failed after $attempt attempt(s), exit code $status. See the log above for the real reason (never a secret value)."
+              exit "$status"
+            fi
+            echo "::warning::pg_dump attempt $attempt failed (exit code $status). Retrying in 30s (attempt $((attempt + 1))/$max_attempts)..."
+            attempt=$((attempt + 1))
+            sleep 30
+          done
+
+      # Fail loudly (not just "artifact missing") if the dump + checksum are
+      # not both present and self-consistent — catches a partial/corrupt dump
+      # before it's ever uploaded as if it were a good backup.
+      - name: Verify the dump against its own checksum
+        run: |
+          set -e
+          dump_file=$(ls backups/bukur-db-*.dump 2>/dev/null | head -n1)
+          if [ -z "$dump_file" ]; then
+            echo "::error::No backup dump file found in backups/ after pg_dump reported success."
+            exit 1
+          fi
+          if [ ! -f "${dump_file}.sha256" ]; then
+            echo "::error::Dump exists but its .sha256 sidecar is missing: ${dump_file}"
+            exit 1
+          fi
+          cd backups && sha256sum -c "$(basename "$dump_file").sha256"
+          echo "Verified: $dump_file ($(du -h "$(basename "$dump_file")" | cut -f1))"
 
       - name: Upload backup as an artifact (off-container storage)
         uses: actions/upload-artifact@v4
@@ -39,3 +76,4 @@ jobs:
           name: bukur-db-backup-${{ github.run_id }}
           path: backups/
           retention-days: 90
+          if-no-files-found: error
